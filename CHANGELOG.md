@@ -8,4 +8,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.0]
 
-- First release.
+- First release: `parse_offset`, `format_offset` and `OffsetError`.
+- Parse `Z`, `+HH`, `+HHMM`, `+HH:MM` and their second-bearing forms into a `timezone`.
+- Format a `timezone` or `timedelta` in `colon`, `compact` or `short` style.
