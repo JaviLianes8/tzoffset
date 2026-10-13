@@ -1,0 +1,9 @@
+# Third-party sources cited by the tests. Not committed; fetch them with
+#   python scripts/fetch_vectors.py
+# Revision: RFC 3339 (July 2002), RFC 9557 (April 2024), tz database release 2026e
+# Licence: RFCs under the IETF Trust Legal Provisions (https://trustee.ietf.org/license-info);
+#   tz database in the public domain (see the LICENSE file inside the tarball)
+# sha256  size  name  url
+9ab2b8864a85dca73a88f49b0927bc7bc85f596926e4fd1890905777924e700a  35064  rfc3339.txt  https://www.rfc-editor.org/rfc/rfc3339.txt
+87fa632cd75d13aa441859da635ed6618f66d203fe71a30fa85afedbeb149e85  39113  rfc9557.txt  https://www.rfc-editor.org/rfc/rfc9557.txt
+b26882805f26aac59d5b222978e6580484b834ccdc98be89df2f05a6dc53a652  481989  tzdata2026e.tar.gz  https://data.iana.org/time-zones/releases/tzdata2026e.tar.gz
