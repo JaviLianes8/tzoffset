@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from tzoffset._cli import main
+from tzoffset._cli import _shield_offsets, main
 
 SRC = Path(__file__).resolve().parents[1] / "src"
 
@@ -50,6 +50,13 @@ def test_style_option(
 @pytest.mark.parametrize(("value", "expected"), [("+", "+00:00"), ("-", "-00:00"), ("Z", "Z")])
 def test_zero_option(capsys: pytest.CaptureFixture[str], value: str, expected: str) -> None:
     assert _run(capsys, "--zero", value, "+00:00") == [expected]
+
+
+def test_dash_led_offsets_are_shielded_from_argparse() -> None:
+    # Python 3.13 and later read "-08:00" as a negative number by themselves; 3.10 to 3.12
+    # take it for an option, so the shield is checked directly.
+    argv = ["-08:00", "-s", "short", "-08", "+01", "--", "-02"]
+    assert _shield_offsets(argv) == ["\x00-08:00", "-s", "short", "\x00-08", "+01", "--", "-02"]
 
 
 def test_double_dash_still_works(capsys: pytest.CaptureFixture[str]) -> None:
@@ -114,9 +121,9 @@ def test_zone_without_at_uses_now(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_unknown_zone_and_bad_moment_exit_two(capsys: pytest.CaptureFixture[str]) -> None:
+    _need_zones()
     assert "unknown time zone" in _fails(capsys, "--zone", "Mars/Olympus")
     assert "unknown time zone" in _fails(capsys, "--zone", "../etc")
-    _need_zones()
     assert "not an ISO 8601" in _fails(capsys, "--zone", "UTC", "--at", "noon")
 
 
