@@ -9,10 +9,10 @@ Progress:
 - [x] Typed API: `Grammar`, `Style`, `Zero` aliases
 - [x] Command line tool (`tzoffset`, `python -m tzoffset`)
 - [x] Contracts: RFC citations, tz database offsets, stdlib oracles, typing, README, wheel e2e
-- [ ] Mutation run (guards changed one at a time, each must fail the suite)
+- [x] Mutation run (guards changed one at a time, each must fail the suite)
 - [x] Docs: README, CHANGELOG, docstrings, packaging metadata
-- [ ] Gates: ruff format, ruff check, mypy --strict, pytest
-- [ ] Independent review findings fixed with regression tests
+- [x] Gates: ruff format, ruff check, mypy --strict, pytest
+- [x] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
 ## Starting point
@@ -89,3 +89,40 @@ Left out on purpose: POSIX TZ strings (`EST5EDT,M3.2.0,M11.1.0` are rule sets wi
 inverted signs, not offsets; `zoneinfo` and the tz database cover them), fractional-second
 offsets (no protocol grammar has them and the tz data no longer holds any), and offsets of a
 day or more (Python cannot represent them).
+
+## Verification
+
+- Gates: `ruff format --check .`, `ruff check .`, `mypy --strict src` (also `src tests`) and
+  `pytest` exit 0 on a second machine with Python 3.14, a fresh clone, `tzdata` installed, the
+  sources fetched by the script and `TZOFFSET_E2E=1`: 263 passed, nothing skipped. The wheel
+  test builds the wheel and the sdist, checks that no fetched source or test ships in them,
+  installs the wheel in a fresh venv, drives the API from an empty folder, and runs the
+  installed `tzoffset` script and `python -m tzoffset`. Locally (Python 3.13, no `tzdata`) the
+  zone tests skip cleanly.
+- Ground truth: the grammar lines of RFC 3339 (5.6, 4.3, Appendix A) and RFC 9557 section 2
+  are read from the fetched texts, and both strict grammars are compared exhaustively with the
+  sets those rules give (every sign, hour 00-25 and minute 00-61, with and without a colon).
+  All 538 standard offsets of the tz database 2026e Zone lines round trip in every style.
+- Oracles: `strftime("%z")`, `isoformat`, `strptime("%z")` and `fromisoformat` (60000 fuzzed
+  strings) agree with the library; every zone in `zoneinfo` from 1800 to 2050 formats and
+  parses back to its own `utcoffset()`.
+- Mutations: 61 mutants (each pattern of the three grammars, ASCII digits and whitespace, the
+  field ranges, the negative zero and unknown offset rules, every type and option check, the
+  zero spellings, styles, seconds field and day limit when formatting, and every command line
+  rule: the argparse shield, intermixed options, `--zone`/`--at` checks, zone errors, the
+  pre-3.11 offset reading of `--at`, exit codes and the closed pipe), applied one at a time
+  with the bytecode cache disabled and purged before each run, baseline green before and
+  after. The first run left two alive: Unicode digits in the minute field (no test had them
+  there) and the argparse shield (Python 3.13 and later read `-08:00` as a negative number by
+  themselves, so only a direct test catches it on new versions). Both got tests; the final run
+  killed all 61.
+- Independent review: 9 findings, all fixed with regression tests: the README zone example
+  depended on the platform tz data (now America/New_York in 1800, `-04:56:02`); `--zone` with
+  a folder such as `America` crashed (now exit 2); `--at` with `Z` or `+0900` failed before
+  Python 3.11 (the offset is now read by this library); a missing tz database was reported as
+  an unknown zone (now named, with the fix); the test parser of the tz data skipped one zone
+  block after a blank line (now 538 offsets, `0:29:46` included); the RFC line checks now also
+  drive the parser; README paraphrases no longer sit in quotation marks and the cited test
+  phrases carry their URLs; the lenient grammar strips ASCII whitespace only; the checklist
+  above is kept current. The `fold=0` reading of a naive `--at` in a gap or overlap is now
+  documented.
