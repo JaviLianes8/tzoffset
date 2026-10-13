@@ -2,15 +2,15 @@
 
 Progress:
 - [x] Brainstorm ranked improvements (this file)
-- [ ] ASCII-only digits and type checks on input
-- [ ] Named grammars: `lenient`, `rfc3339`, `iso8601`
-- [ ] Unknown local offset (`Z`, `-00:00`) and the `zero` choice when formatting
-- [ ] Format from an aware `datetime` or any fixed `tzinfo` (zoneinfo interplay)
-- [ ] Typed API: `Grammar`, `Style`, `Zero` aliases
-- [ ] Command line tool (`tzoffset`, `python -m tzoffset`)
-- [ ] Contracts: RFC citations, tz database offsets, stdlib oracles, typing, README, wheel e2e
+- [x] ASCII-only digits and type checks on input
+- [x] Named grammars: `lenient`, `rfc3339`, `iso8601`
+- [x] Unknown local offset (`Z`, `-00:00`) and the `zero` choice when formatting
+- [x] Format from an aware `datetime` or any fixed `tzinfo` (zoneinfo interplay)
+- [x] Typed API: `Grammar`, `Style`, `Zero` aliases
+- [x] Command line tool (`tzoffset`, `python -m tzoffset`)
+- [x] Contracts: RFC citations, tz database offsets, stdlib oracles, typing, README, wheel e2e
 - [ ] Mutation run (guards changed one at a time, each must fail the suite)
-- [ ] Docs: README, CHANGELOG, docstrings, packaging metadata
+- [x] Docs: README, CHANGELOG, docstrings, packaging metadata
 - [ ] Gates: ruff format, ruff check, mypy --strict, pytest
 - [ ] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
@@ -21,8 +21,8 @@ Progress:
 `+hh`, `+hhmm`, `+hh:mm` and the same with seconds, and writes colon, compact and short
 styles. Read as a user who parses timestamps from logs, APIs and mail headers:
 
-- `\d` in the pattern matches any Unicode digit, so `"+٠٥:٣٠"` (Arabic-Indic
-  digits) parses as `+05:30`. Offsets in protocols are ASCII.
+- `\d` in the pattern matches any Unicode digit, so `+05:30` written with Arabic-Indic
+  digits parses. Offsets in protocols are ASCII.
 - One grammar only. There is no way to ask for exactly what RFC 3339 allows (`Z` or `+hh:mm`)
   or exactly what ISO 8601 allows (no seconds, no `-00:00`).
 - `-00:00` is read as UTC with no way to tell it apart from `+00:00`, although RFC 3339 gives it

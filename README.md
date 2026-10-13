@@ -42,7 +42,7 @@ hours go up to 23 and minutes and seconds up to 59 in every grammar. Anything el
 
 | grammar | accepts | rejects |
 | --- | --- | --- |
-| `"lenient"` (default) | `Z`, `z`, `+hh`, `+hhmm`, `+hh:mm`, `+hhmmss`, `+hh:mm:ss`, surrounding spaces | mixed colon and compact forms |
+| `"lenient"` (default) | `Z`, `z`, `+hh`, `+hhmm`, `+hh:mm`, `+hhmmss`, `+hh:mm:ss`, surrounding ASCII whitespace | mixed colon and compact forms |
 | `"rfc3339"` | `Z`, `z`, `+hh:mm` (RFC 3339 section 5.6) | everything else, spaces included |
 | `"iso8601"` | `Z`, `z`, `+hh`, `+hhmm`, `+hh:mm` (RFC 3339 Appendix A) | seconds, spaces, `-00`, `-0000`, `-00:00` |
 
@@ -63,9 +63,9 @@ for text in ["+0530", "+05:30:45", " +05:30"]:
 
 ### Unknown local offset
 
-RFC 3339 section 4.3, as updated by RFC 9557 section 2, reads `Z` and `-00:00` as "the UTC
-time is known, the local offset is not", and `+00:00` as "UTC is the reference". All three
-parse to UTC; `is_unknown_local_offset` keeps the difference, and `zero=` picks the spelling
+RFC 3339 section 4.3, as updated by RFC 9557 section 2, gives `Z` and `-00:00` one meaning:
+the UTC time is known and the local offset is not. `+00:00` instead says UTC is the reference
+for the time. All three parse to UTC; `is_unknown_local_offset` keeps the difference, and `zero=` picks the spelling
 when formatting.
 
 ```python
@@ -88,7 +88,8 @@ print(format_offset(datetime(2026, 7, 1, 12, tzinfo=timezone.utc), zero="Z"))
 A `zoneinfo.ZoneInfo` has no single offset, so `format_offset` takes an aware `datetime`
 and writes the offset in force at that moment. Offsets with seconds, such as the local mean
 time the tz database keeps for years before standard time, are written with a seconds field
-(`+00:19:32`); fractions of a second are refused.
+(`-04:56:02`); fractions of a second are refused. On Windows, `zoneinfo` needs the `tzdata`
+package (`pip install tzdata`) to find any zone.
 
 ```python
 from datetime import datetime
@@ -100,8 +101,8 @@ print(format_offset(datetime(2026, 1, 15, tzinfo=ZoneInfo("Europe/Madrid"))))
 # +01:00
 print(format_offset(datetime(2026, 7, 15, tzinfo=ZoneInfo("Europe/Madrid"))))
 # +02:00
-print(format_offset(datetime(1900, 1, 1, tzinfo=ZoneInfo("Europe/Amsterdam"))))
-# +00:19:32
+print(format_offset(datetime(1800, 1, 1, tzinfo=ZoneInfo("America/New_York"))))
+# -04:56:02
 ```
 
 ## Command line
@@ -119,8 +120,9 @@ $ tzoffset --zone America/New_York --at 2026-03-08T12:00
 ```
 
 `--grammar` picks the input grammar, `--zone` with `--at` prints the offset of a tz
-database zone at a moment (a naive `--at` is wall time in that zone; without `--at` it is
-now). Bad input exits with status 2. Also available as `python -m tzoffset`.
+database zone at a moment (without `--at` it is now). A naive `--at` is wall time in that
+zone; a wall time skipped or repeated by a clock change takes the offset in force before the
+change (`fold=0`). Bad input exits with status 2. Also available as `python -m tzoffset`.
 
 ## Why
 

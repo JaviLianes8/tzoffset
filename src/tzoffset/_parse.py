@@ -8,6 +8,7 @@ from datetime import timedelta, timezone
 from ._errors import OffsetError
 from ._types import GRAMMARS, Grammar
 
+_ASCII_SPACE = " \t\n\r\f\v"
 # Digits are spelled [0-9]: \d would also take Arabic-Indic and other Unicode digits.
 _SIGN_HOURS = r"(?P<sign>[+-])(?P<hh>[0-9]{2})"
 _PATTERNS = {
@@ -29,8 +30,9 @@ def _read(text: str, grammar: Grammar) -> tuple[int, bool]:
         raise TypeError(f"offset must be a str, not {type(text).__name__}")
     if grammar not in GRAMMARS:
         raise OffsetError(f"unknown grammar: {grammar!r}")
-    # Only the lenient grammar forgives surrounding whitespace; the strict ones are exact.
-    body = text.strip() if grammar == "lenient" else text
+    # Only the lenient grammar forgives surrounding whitespace, and only ASCII whitespace:
+    # protocol text is ASCII. The strict grammars are exact.
+    body = text.strip(_ASCII_SPACE) if grammar == "lenient" else text
     if body in ("Z", "z"):
         return 0, True
     match = _PATTERNS[grammar].fullmatch(body)
@@ -53,7 +55,7 @@ def _read(text: str, grammar: Grammar) -> tuple[int, bool]:
 def parse_offset(text: str, *, grammar: Grammar = "lenient") -> timezone:
     """Parse "Z", "+09", "+0530" or "+05:30" into a fixed-offset timezone.
 
-    ``grammar="lenient"`` (the default) also takes seconds and surrounding spaces;
+    ``grammar="lenient"`` (the default) also takes seconds and surrounding ASCII spaces;
     ``"rfc3339"`` takes only ``Z`` and ``+hh:mm``; ``"iso8601"`` takes ``Z``, ``+hh``,
     ``+hhmm`` and ``+hh:mm`` but no negative zero. Raises ``OffsetError`` on bad text.
     """

@@ -25,6 +25,7 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - Only ASCII digits are accepted; other Unicode digits used to parse.
+- The lenient grammar strips only ASCII whitespace around the offset, not other Unicode spaces.
 - A non-string to `parse_offset`, or a value that is not a `timedelta`, `tzinfo` or
   `datetime` to `format_offset`, raises `TypeError` instead of an `AttributeError`.
 

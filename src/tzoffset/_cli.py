@@ -18,6 +18,11 @@ from ._types import GRAMMARS, STYLES, ZEROS
 _MARK = "\x00"
 
 
+# A date and time with a trailing offset: the time part holds only digits, colons and a
+# decimal mark, so the offset cannot be confused with the dashes of the date.
+_AT = re.compile(r"(?P<local>.+[Tt ][0-9:.,]+?)(?P<offset>[Zz]|[+-][0-9:]+)")
+
+
 def _shield_offsets(argv: Sequence[str]) -> list[str]:
     # argparse reads "-08:00" as an unknown option. Mark dash-led offsets before any "--"
     # so they stay positional, in order; _offset removes the mark again.
@@ -59,17 +64,30 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _moment(text: str) -> datetime:
+    # Before 3.11 fromisoformat reads neither "Z" nor "+0900", so the offset is split off and
+    # read by this library; the rest is a plain local date and time.
+    match = _AT.fullmatch(text)
+    if match is None:
+        return datetime.fromisoformat(text)
+    local = datetime.fromisoformat(match["local"])
+    return local.replace(tzinfo=parse_offset(match["offset"]))
+
+
 def _zone_moment(parser: argparse.ArgumentParser, name: str, at: str | None) -> datetime:
-    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
     try:
         zone = ZoneInfo(name)
-    except (ZoneInfoNotFoundError, ValueError):
+    except (ZoneInfoNotFoundError, ValueError, OSError):
+        # OSError: a folder of the database such as "America" is not a zone.
+        if not available_timezones():
+            parser.error("no time zone database found; install the tzdata package")
         parser.error(f"unknown time zone: {name!r}")
     if at is None:
         return datetime.now(timezone.utc).astimezone(zone)
     try:
-        moment = datetime.fromisoformat(at)
+        moment = _moment(at)
     except ValueError:
         parser.error(f"--at is not an ISO 8601 datetime: {at!r}")
     if moment.tzinfo is None:

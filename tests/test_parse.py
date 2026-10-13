@@ -83,3 +83,10 @@ def test_parse_rejects_non_strings(value: object) -> None:
 def test_parse_rejects_unicode_digits() -> None:
     with pytest.raises(OffsetError):
         parse_offset("+\u0660\u0665:30")
+
+
+def test_lenient_strips_ascii_whitespace_only() -> None:
+    assert parse_offset("\t+05:30\r\n\x0b\x0c ") == timezone(timedelta(hours=5, minutes=30))
+    for space in ("\u3000", "\u00a0", "\u2003", "\x85"):
+        with pytest.raises(OffsetError):
+            parse_offset(space + "+05:30")

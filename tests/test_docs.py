@@ -34,12 +34,15 @@ def _expected(block: str) -> list[str]:
     return results
 
 
-def _need_zones() -> None:
+def _need_zones(text: str) -> None:
     zoneinfo = pytest.importorskip("zoneinfo")
-    try:
-        zoneinfo.ZoneInfo("Europe/Amsterdam")
-    except zoneinfo.ZoneInfoNotFoundError:
-        pytest.skip("no time zone database")
+    names = re.findall(r'ZoneInfo\("([^"]+)"\)|--zone (\S+)', text)
+    assert names
+    for name in ["".join(pair) for pair in names]:
+        try:
+            zoneinfo.ZoneInfo(name)
+        except zoneinfo.ZoneInfoNotFoundError:
+            pytest.skip(f"no time zone database with {name}")
 
 
 def test_the_readme_has_its_four_examples() -> None:
@@ -52,7 +55,7 @@ def test_each_example_prints_what_its_comments_say(
 ) -> None:
     block = _blocks()[index]
     if "ZoneInfo" in block:
-        _need_zones()
+        _need_zones(block)
     exec(compile(block, "README.md", "exec"), {"__name__": "readme"})
     printed = capsys.readouterr().out.splitlines()
     assert printed == _expected(block)
@@ -60,9 +63,9 @@ def test_each_example_prints_what_its_comments_say(
 
 
 def test_the_command_line_examples_match_the_tool(capsys: pytest.CaptureFixture[str]) -> None:
-    _need_zones()
     session = re.search(r"```\n(\$ tzoffset .*?)```", _readme(), flags=re.DOTALL)
     assert session is not None
+    _need_zones(session.group(1))
     transcript: list[str] = []
     for line in session.group(1).splitlines():
         if line.startswith("$ tzoffset "):
