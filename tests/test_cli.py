@@ -75,6 +75,10 @@ def test_offsets_or_zone_are_required(capsys: pytest.CaptureFixture[str]) -> Non
     assert "either OFFSET values or --zone" in _fails(capsys)
 
 
+def test_offsets_and_zone_do_not_mix(capsys: pytest.CaptureFixture[str]) -> None:
+    assert "either OFFSET values or --zone" in _fails(capsys, "--zone", "UTC", "+01")
+
+
 def test_at_needs_zone(capsys: pytest.CaptureFixture[str]) -> None:
     assert "--at needs --zone" in _fails(capsys, "+01", "--at", "2026-01-01T00:00")
 
@@ -100,6 +104,8 @@ def test_zone_at_an_aware_moment_is_converted(capsys: pytest.CaptureFixture[str]
     zone = ["--zone", "America/New_York"]
     assert _run(capsys, *zone, "--at", "2026-03-08T06:59+00:00") == ["-05:00"]
     assert _run(capsys, *zone, "--at", "2026-03-08T07:00Z") == ["-04:00"]
+    # Noon in Tokyo is 22:00 the evening before in New York, still on standard time.
+    assert _run(capsys, *zone, "--at", "2026-03-08T12:00+09:00") == ["-05:00"]
 
 
 def test_zone_without_at_uses_now(capsys: pytest.CaptureFixture[str]) -> None:
