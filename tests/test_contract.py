@@ -1,10 +1,21 @@
+from __future__ import annotations
+
 import importlib.resources
+import typing
 
 import tzoffset
 
 # The public API. Add every exported name here as the library grows; this list is the
 # contract and the test below fails if the module and this list disagree.
-PUBLIC_API: list[str] = ["OffsetError", "format_offset", "parse_offset"]
+PUBLIC_API: list[str] = [
+    "Grammar",
+    "OffsetError",
+    "Style",
+    "Zero",
+    "format_offset",
+    "is_unknown_local_offset",
+    "parse_offset",
+]
 
 
 def test_all_lists_exactly_the_public_api() -> None:
@@ -24,3 +35,13 @@ def test_version_is_a_three_part_string() -> None:
 
 def test_the_package_ships_type_information() -> None:
     assert importlib.resources.files("tzoffset").joinpath("py.typed").is_file()
+
+
+def test_offset_error_is_a_value_error() -> None:
+    assert issubclass(tzoffset.OffsetError, ValueError)
+
+
+def test_the_literal_aliases_list_the_accepted_values() -> None:
+    assert typing.get_args(tzoffset.Grammar) == ("lenient", "rfc3339", "iso8601")
+    assert typing.get_args(tzoffset.Style) == ("colon", "compact", "short")
+    assert typing.get_args(tzoffset.Zero) == ("+", "-", "Z")
