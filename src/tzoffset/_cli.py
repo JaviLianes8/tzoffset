@@ -29,11 +29,14 @@ class _Parser(argparse.ArgumentParser):
 
 
 def _shield_offsets(argv: Sequence[str]) -> list[str]:
-    # argparse reads "-08:00" as an unknown option. Mark dash-led arguments before any "--"
-    # so they stay values, in order; _unshield removes the mark again.
+    # argparse reads "-08:00" as an unknown option. Mark dash-led values so they stay values,
+    # in order; _unshield removes the mark again. Before "--" only a dash and a digit make a
+    # value. After it everything is a value, but Python 3.10 and 3.11 read the arguments
+    # after "--" again in parse_intermixed_args, so those are marked too.
     cut = list(argv).index("--") if "--" in argv else len(argv)
     head = [_MARK + arg if re.match(r"-[0-9]", arg) else arg for arg in argv[:cut]]
-    return [*head, *argv[cut:]]
+    tail = [_MARK + arg if arg.startswith("-") else arg for arg in argv[cut + 1 :]]
+    return [*head, *argv[cut : cut + 1], *tail]
 
 
 def _unshield(text: str) -> str:
@@ -55,18 +58,26 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "offsets", nargs="*", type=_unshield, metavar="OFFSET", help="offsets to rewrite"
     )
-    parser.add_argument("-s", "--style", choices=STYLES, default="colon", help="output style")
+    parser.add_argument(
+        "-s", "--style", choices=STYLES, default="colon", help="output style (default colon)"
+    )
     parser.add_argument(
         "-z", "--zero", choices=ZEROS, default="+", help="how to write a zero offset (default +)"
     )
     parser.add_argument(
-        "-g", "--grammar", choices=GRAMMARS, default="lenient", help="input grammar"
+        "-g",
+        "--grammar",
+        choices=GRAMMARS,
+        default="lenient",
+        help="input grammar (default lenient)",
     )
     parser.add_argument("--zone", type=_unshield, help="tz database name such as Europe/Madrid")
     parser.add_argument(
         "--at",
         type=_unshield,
-        help="ISO 8601 moment for --zone; a naive one is wall time there (default: now)",
+        help="date and time for --zone in the extended ISO 8601 form, such as "
+        "2026-07-01T12:00:00.5+02:00 (Python 3.11 and later also read the basic form "
+        "20260701T120000Z); a naive one is wall time there (default: now)",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser

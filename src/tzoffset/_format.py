@@ -9,6 +9,8 @@ from ._errors import OffsetError
 from ._types import STYLES, ZEROS, Style, Zero
 
 _SECONDS_PER_DAY = 24 * 3600
+# The C-level tzinfo field of a datetime, which a subclass cannot override.
+_DATETIME_TZINFO = vars(datetime)["tzinfo"]
 
 
 def format_offset(
@@ -27,8 +29,9 @@ def format_offset(
     Raises ``OffsetError`` (a ``ValueError``) for an offset of a day or more, a fraction of
     a second, a naive ``datetime``, a ``tzinfo`` without a fixed offset, or an unknown
     ``style`` or ``zero``; ``TypeError`` for a ``value`` of another type, a ``tzinfo``
-    whose ``utcoffset(None)`` returns something other than a ``timedelta`` or ``None``,
-    or a ``style`` or ``zero`` that is not a ``str``.
+    (also the one of a ``datetime``) whose ``utcoffset`` returns something other than a
+    ``timedelta`` or ``None``, or a ``style`` or ``zero`` that is not a ``str``. A subclass
+    of ``timedelta`` or ``datetime`` is read by its stored value, never by its own methods.
 
     >>> from datetime import timedelta, timezone
     >>> from tzoffset import format_offset
@@ -68,23 +71,41 @@ def format_offset(
 
 
 def _as_timedelta(value: object) -> timedelta:
+    # Every offset is copied into an exact timedelta first: a subclass may override days,
+    # seconds or __repr__, and only the stored value may count.
     if isinstance(value, timedelta):
-        return value
+        return _exact(value)
     if isinstance(value, datetime):
-        # datetime itself checks that its tzinfo returns None or a timedelta under a day.
-        offset = value.utcoffset()
+        # The tzinfo is read from the datetime itself and range-checked here, so a subclass
+        # cannot change the offset and an offset of a day or more is an OffsetError.
+        zone = _DATETIME_TZINFO.__get__(value, datetime)
+        offset = None if zone is None else _offset(zone, value)
         if offset is None:
             raise OffsetError(f"a naive datetime has no UTC offset: {datetime.isoformat(value)}")
         return offset
     if isinstance(value, tzinfo):
-        fixed = value.utcoffset(None)
+        fixed = _offset(value, None)
         if fixed is None:
             raise OffsetError(
                 f"{kind(value)} has no fixed offset; pass an aware datetime to pick a moment"
             )
-        if not isinstance(fixed, timedelta):
-            raise TypeError(
-                f"{kind(value)}.utcoffset(None) returned {kind(fixed)}, not a timedelta or None"
-            )
         return fixed
     raise TypeError(f"expected a timedelta, tzinfo or datetime, not {kind(value)}")
+
+
+def _offset(zone: tzinfo, moment: datetime | None) -> timedelta | None:
+    """Return ``zone.utcoffset(moment)`` as an exact timedelta, or None."""
+    offset: object = zone.utcoffset(moment)
+    if offset is None:
+        return None
+    if not isinstance(offset, timedelta):
+        at = "None" if moment is None else "a datetime"
+        raise TypeError(
+            f"{kind(zone)}.utcoffset({at}) returned {kind(offset)}, not a timedelta or None"
+        )
+    return _exact(offset)
+
+
+def _exact(delta: timedelta) -> timedelta:
+    # timedelta.__add__ reads the stored fields and returns a plain timedelta.
+    return timedelta.__add__(timedelta(0), delta)

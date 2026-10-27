@@ -123,8 +123,9 @@ $ tzoffset --zone America/New_York --at 2026-03-08T12:00
 ```
 
 `--grammar` picks the input grammar, `--zone` with `--at` prints the offset of a tz
-database zone at a moment (without `--at` it is now). A naive `--at` is wall time in that
-zone; a wall time skipped or repeated by a clock change takes the offset in force before the
+database zone at a moment (without `--at` it is now). `--at` takes RFC 3339 timestamps
+such as `1985-04-12T23:20:50.52Z` on every supported Python; the GUIDE lists the other
+forms. A naive `--at` is wall time in that zone; a wall time skipped or repeated by a clock change takes the offset in force before the
 change (`fold=0`). Bad input exits with status 2, and a reader that closes the output
 early (`| head`) gives status 1. Also available as `python -m tzoffset`.
 
@@ -136,7 +137,7 @@ early (`| head`) gives status 1. Also available as `python -m tzoffset`.
 | `is_unknown_local_offset(text, *, grammar="lenient")` | `True` for `Z` and a negative zero (`-00:00`, `-0000`, `-00`), after validating the text. |
 | `format_offset(value, *, style="colon", zero="+")` | Text for a `timedelta`, a fixed-offset `tzinfo` or an aware `datetime`. |
 | `Grammar`, `Style`, `Zero` | `Literal` aliases of the accepted `grammar`, `style` and `zero` values. |
-| `OffsetError` | `ValueError` subclass for text that is not an offset and values out of range. Arguments of the wrong type raise `TypeError`. Messages quote at most 40 characters of the input. |
+| `OffsetError` | `ValueError` subclass for text that is not an offset and values out of range. Arguments of the wrong type raise `TypeError`. Messages quote at most 40 characters of a text argument. |
 
 The [GUIDE](https://github.com/JaviLianes8/tzoffset/blob/main/GUIDE.md) has every rule in
 detail, and the [CHANGELOG](https://github.com/JaviLianes8/tzoffset/blob/main/CHANGELOG.md)

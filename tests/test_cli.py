@@ -46,12 +46,14 @@ def test_zero_option(capsys: pytest.CaptureFixture[str], value: str, expected: s
 def test_dash_led_offsets_are_shielded_from_argparse() -> None:
     # Python 3.13 and later read "-08:00" as a negative number by themselves; 3.10 to 3.12
     # take it for an option, so the shield is checked directly.
-    argv = ["-08:00", "-s", "short", "-08", "+01", "--", "-02"]
-    assert _shield_offsets(argv) == ["\x00-08:00", "-s", "short", "\x00-08", "+01", "--", "-02"]
+    # After "--" every dash-led value is marked: 3.10 and 3.11 read those arguments again.
+    argv = ["-08:00", "-s", "short", "-08", "+01", "--", "-02", "+03", "-x"]
+    shielded = ["\x00-08:00", "-s", "short", "\x00-08", "+01", "--", "\x00-02", "+03", "\x00-x"]
+    assert _shield_offsets(argv) == shielded
 
 
 def test_double_dash_still_works(capsys: pytest.CaptureFixture[str]) -> None:
-    assert _run(capsys, "-s", "short", "--", "-01", "+02") == ["-01", "+02"]
+    assert _run(capsys, "-s", "short", "--", "-01", "-05:30", "+02") == ["-01", "-05:30", "+02"]
 
 
 def test_grammar_option_is_applied(capsys: pytest.CaptureFixture[str]) -> None:
@@ -125,4 +127,4 @@ def test_unknown_zone_and_bad_moment_exit_two(capsys: pytest.CaptureFixture[str]
     _need_zones()
     assert "unknown time zone" in _fails(capsys, "--zone", "Mars/Olympus")
     assert "unknown time zone" in _fails(capsys, "--zone", "../etc")
-    assert "not an ISO 8601" in _fails(capsys, "--zone", "UTC", "--at", "noon")
+    assert "cannot read --at" in _fails(capsys, "--zone", "UTC", "--at", "noon")

@@ -27,7 +27,7 @@ _PATTERNS = {
 
 def _read(text: object, grammar: object) -> tuple[int, bool]:
     """Return the offset in seconds and whether it marks an unknown local offset."""
-    original = plain(text, "offset")
+    original = plain(text, "text")
     rule = choice(grammar, "grammar", GRAMMARS)
     # Only the lenient grammar forgives surrounding whitespace, and only ASCII whitespace:
     # protocol text is ASCII. The strict grammars are exact.

@@ -7,8 +7,9 @@ class OffsetError(ValueError):
     """Raised when a string is not a valid UTC offset, or a value is out of range.
 
     It is a ``ValueError``, so existing ``except ValueError`` handlers catch it. Arguments
-    of the wrong type raise ``TypeError`` instead. Messages quote at most 40 characters
-    of the input.
+    of the wrong type raise ``TypeError`` instead. A message quotes at most 40 characters
+    of a text argument, followed by its length when it is longer; an offset is shown as
+    its exact ``timedelta``, so every message stays short.
 
     >>> from tzoffset import OffsetError, parse_offset
     >>> try:

@@ -79,6 +79,10 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     data = sorted(name.split("/tests/vectors/")[1] for name in members if "/tests/vectors/" in name)
     assert data == ["java/zoneoffset.txt", "sources/MANIFEST.txt"]
     assert not [name for name in members if "CERT-1.0" in name or "IMPROVEMENTS" in name]
+    # Every path the sdist exclude list names is really left out (hatchling always ships
+    # .gitignore, so the list does not name it).
+    excluded = [name for name in members if "/.github" in name or name.endswith("/.gitattributes")]
+    assert not excluded, excluded
 
     env_dir = tmp_path / "venv"
     venv.create(env_dir, with_pip=True)

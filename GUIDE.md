@@ -93,27 +93,53 @@ The colon style writes what `datetime.isoformat()` writes after the time, and th
 style what `strftime("%z")` writes; the tests check both for every whole minute and for
 offsets with seconds, and check all four spellings against `java.time.ZoneOffset`.
 
+A subclass of `timedelta` or `datetime` is read by its stored value: an overridden `days`,
+`seconds`, `utcoffset` or `__repr__` is never used. The offset of an aware `datetime` comes
+from its `tzinfo` and is checked like any other, so an offset of a day or more is an
+`OffsetError` whichever way it arrives.
+
+## Types for type checkers: `Grammar`, `Style` and `Zero`
+
+`Grammar`, `Style` and `Zero` are `typing.Literal` aliases of the accepted `grammar`, `style`
+and `zero` values, for annotating code that passes them on. `typing.get_args` lists the
+values. They are the shared `Literal` objects of the standard library, so they carry no
+docstring of their own; this guide is their documentation.
+
+```python
+import typing
+
+from tzoffset import Grammar, Style, Zero
+
+print(typing.get_args(Grammar))
+# ('lenient', 'rfc3339', 'iso8601')
+print(typing.get_args(Style), typing.get_args(Zero))
+# ('colon', 'compact', 'short') ('+', '-', 'Z')
+```
+
 ## Errors
 
 | Call | Raises |
 | --- | --- |
 | text that is not an offset in the grammar, a field out of range | `OffsetError` |
 | an unknown `grammar`, `style` or `zero` string | `OffsetError`, naming the accepted values |
-| an offset of a day or more, or a fraction of a second | `OffsetError` |
+| an offset of a day or more, or a fraction of a second, from a `timedelta`, a `tzinfo` or an aware `datetime` | `OffsetError` |
 | a naive `datetime`, or a `tzinfo` with no fixed offset (`utcoffset(None)` is `None`) | `OffsetError` |
 | `text`, `grammar`, `style` or `zero` that is not a `str` | `TypeError` |
-| a `value` that is not a `timedelta`, `tzinfo` or `datetime`; a `tzinfo` whose `utcoffset(None)` returns something else | `TypeError` |
+| a `value` that is not a `timedelta`, `tzinfo` or `datetime`; a `tzinfo`, also the one of a `datetime`, whose `utcoffset` returns something other than a `timedelta` or `None` | `TypeError` |
 
 `OffsetError` is a `ValueError`, so existing `except ValueError` handlers keep working. A
-message quotes at most 40 characters of what was passed, followed by its length, so a huge
-or hostile argument never becomes a huge message. A subclass of `str` is read by its
-characters only: its own `strip`, `__eq__` or `__repr__` are never called.
+message quotes at most 40 characters of a text argument, followed by its length when it is
+longer; an offset is shown as its exact `timedelta` (`datetime.timedelta(days=2)`), a naive
+`datetime` by its `isoformat()` and any other object by its type name, cut to 40
+characters. So a huge or hostile argument never becomes a huge message. A subclass of `str`
+is read by its characters only: its own `strip`, `__eq__` or `__repr__` are never called.
 
 ## Command line
 
 `tzoffset OFFSET...` rewrites each offset on its own line; `tzoffset --zone NAME [--at
 MOMENT]` prints the offset of a tz database zone. Options may come before or after the
-offsets, and an offset that starts with `-` is never read as an option.
+offsets, and an offset that starts with `-` is never read as an option, before or after a
+`--`.
 
 | option | meaning |
 | --- | --- |
@@ -121,12 +147,21 @@ offsets, and an offset that starts with `-` is never read as an option.
 | `-z`, `--zero` | `+` (default), `-` or `Z` |
 | `-g`, `--grammar` | `lenient` (default), `rfc3339` or `iso8601`, for the OFFSET values |
 | `--zone` | a tz database name such as `Europe/Madrid` |
-| `--at` | an ISO 8601 moment for `--zone`, now when left out |
+| `--at` | a date and time for `--zone`, such as `2026-07-01T12:00:00+02:00`; now when left out |
+
+`--at` takes the extended ISO 8601 form of RFC 3339 on every supported Python: a date
+(`2026-07-01`), optionally `T` (or `t` or a space) and a time (`12`, `12:00` or `12:00:00`,
+with a fraction of a second of any length after a dot or a comma), then an optional offset
+(`Z`, `+09:00`, `+0900`, `+09`). Second 60, the leap
+second RFC 3339 allows, is read as second 59 of the same minute: the offset in force cannot
+change inside it. Other ISO 8601 forms go to `datetime.fromisoformat` of the running Python,
+so the basic form (`20260701T120000Z`) and week dates (`2026-W27-3T12:00`) work from Python
+3.11 on and are refused on 3.10; anything unreadable exits with status 2 and
+`cannot read --at as a date and time`.
 
 A naive `--at` is wall time in the zone; when the clock skips or repeats that wall time, the
 offset in force before the change is used (`fold=0`). An `--at` with an offset is converted
-to the zone first, and `Z` and compact offsets such as `+0900` work on every supported
-Python. Exit status: 0 when everything was written, 1 when the reader closed the output
+to the zone first. Exit status: 0 when everything was written, 1 when the reader closed the output
 first (`tzoffset ... | head -1`), 2 for bad input or usage, with the reason on standard error.
 
 ## Limits

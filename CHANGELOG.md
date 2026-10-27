@@ -27,20 +27,32 @@ defaults and accepted values of 0.2.0.
 - A `grammar`, `style` or `zero` that is not a `str` raises `TypeError` instead of
   `OffsetError`; an unknown string still raises `OffsetError`, which now names the accepted
   values.
-- A `tzinfo` whose `utcoffset(None)` returns something other than a `timedelta` or `None`
-  raises `TypeError` from `format_offset`.
-- Error messages quote at most 40 characters of the input, followed by its length, and
-  never call the `repr` of the caller's object; a field out of range names the allowed
-  ranges.
-- A subclass of `str` is read by its characters only; its own methods are not called.
+- A `tzinfo` whose `utcoffset` returns something other than a `timedelta` or `None`
+  raises `TypeError` from `format_offset`, also when it is the `tzinfo` of an aware
+  `datetime`.
+- `format_offset` of an aware `datetime` whose `tzinfo` returns an offset of a day or more
+  raises `OffsetError`, as the `tzinfo` itself does, instead of the plain `ValueError` of
+  the standard library.
+- Error messages quote at most 40 characters of a text argument, followed by its length,
+  show an offset as its exact `timedelta`, and never call the `repr` of the caller's object;
+  a field out of range names the allowed ranges. The `TypeError` for a `text` that is not a
+  `str` names the parameter: `text must be a str, not int` (it said `offset`).
+- A subclass of `str` is read by its characters only; its own methods are not called. A
+  subclass of `timedelta` or `datetime` is read by its stored value: an overridden `days`,
+  `seconds`, `utcoffset` or `__repr__` no longer changes the result or the message.
 - `OffsetError` shows and pickles as `tzoffset.OffsetError`.
 - Command line: a reader that closes the output early (`| head`) gives exit status 1
   instead of 0, also for `--help` and `--version`; `--zone` and `--at` values that start
   with `-` are read as values; an `--at` that falls outside years 1 to 9999 in the zone
   exits with status 2 and a message instead of a traceback; usage messages are cut to
-  200 characters.
+  200 characters. Values after `--` are offsets on every Python (3.10 and 3.11 refused
+  `tzoffset -- -05:30`).
+- Command line `--at`: a fraction of a second of any length, a comma as the decimal mark
+  and a leap second (second 60, read as 59) are read on every Python, so every RFC 3339
+  timestamp works on 3.10 too; text it cannot read gives `cannot read --at as a date and
+  time` instead of calling it not ISO 8601. `--help` shows the default style and grammar.
 
-## [0.2.0]
+## [0.2.0] - 2026-10-13
 
 ### Added
 
@@ -63,8 +75,15 @@ defaults and accepted values of 0.2.0.
 - A non-string to `parse_offset`, or a value that is not a `timedelta`, `tzinfo` or
   `datetime` to `format_offset`, raises `TypeError` instead of an `AttributeError`.
 
-## [0.1.0]
+## [0.1.0] - 2026-10-12
 
-- First release: `parse_offset`, `format_offset` and `OffsetError`.
+### Added
+
+- First version: `parse_offset`, `format_offset` and `OffsetError`.
 - Parse `Z`, `+HH`, `+HHMM`, `+HH:MM` and their second-bearing forms into a `timezone`.
 - Format a `timezone` or `timedelta` in `colon`, `compact` or `short` style.
+
+[Unreleased]: https://github.com/JaviLianes8/tzoffset/commits/main
+[1.0.0]: https://github.com/JaviLianes8/tzoffset/compare/af44df6...main
+[0.2.0]: https://github.com/JaviLianes8/tzoffset/compare/6651c8a...af44df6
+[0.1.0]: https://github.com/JaviLianes8/tzoffset/commit/6651c8a

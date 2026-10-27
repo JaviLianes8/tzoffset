@@ -33,8 +33,11 @@ def test_annotations_resolve_to_real_types() -> None:
 
 
 def test_every_public_name_is_documented_with_an_example() -> None:
+    # The Literal aliases are shared typing objects; their examples live in _types.__test__.
+    from tzoffset._types import __test__ as alias_examples
+
     for name in tzoffset.__all__:
-        doc = inspect.getdoc(getattr(tzoffset, name)) or ""
+        doc = alias_examples.get(name) or inspect.getdoc(getattr(tzoffset, name)) or ""
         assert ">>> " in doc, name
 
 

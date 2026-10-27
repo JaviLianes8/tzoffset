@@ -54,11 +54,11 @@ def _guide_blocks() -> list[str]:
     return re.findall(r"```python\n(.*?)```", text, flags=re.DOTALL)
 
 
-@pytest.mark.parametrize("index", range(3))
+@pytest.mark.parametrize("index", range(4))
 def test_each_guide_example_prints_what_its_comments_say(
     index: int, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert len(_guide_blocks()) == 3
+    assert len(_guide_blocks()) == 4
     block = _guide_blocks()[index]
     exec(compile(block, "GUIDE.md", "exec"), {"__name__": "guide"})
     printed = capsys.readouterr().out.splitlines()

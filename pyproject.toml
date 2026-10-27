@@ -59,9 +59,9 @@ Funding = "https://buymeacoffee.com/jlianesglrs"
 
 [tool.hatch.build.targets.sdist]
 # Third-party sources are fetched locally and never shipped; only their manifest is.
+# hatchling always ships .gitignore, so it is not listed here.
 exclude = [
     ".github",
-    ".gitignore",
     ".gitattributes",
     "IMPROVEMENTS-round*.md",
     "CERT-1.0-*.md",
