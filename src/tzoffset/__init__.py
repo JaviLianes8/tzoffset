@@ -7,8 +7,6 @@
 '-0800'
 """
 
-from __future__ import annotations
-
 from ._errors import OffsetError
 from ._format import format_offset
 from ._parse import is_unknown_local_offset, parse_offset

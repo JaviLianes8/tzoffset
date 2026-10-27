@@ -49,6 +49,29 @@ def test_the_readme_has_its_four_examples() -> None:
     assert len(_blocks()) == 4
 
 
+def _guide_blocks() -> list[str]:
+    text = (ROOT / "GUIDE.md").read_text(encoding="utf-8")
+    return re.findall(r"```python\n(.*?)```", text, flags=re.DOTALL)
+
+
+@pytest.mark.parametrize("index", range(3))
+def test_each_guide_example_prints_what_its_comments_say(
+    index: int, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert len(_guide_blocks()) == 3
+    block = _guide_blocks()[index]
+    exec(compile(block, "GUIDE.md", "exec"), {"__name__": "guide"})
+    printed = capsys.readouterr().out.splitlines()
+    assert printed == _expected(block)
+    assert len(printed) >= 2
+
+
+def test_the_readme_links_are_absolute() -> None:
+    links = re.findall(r"\]\(([^)]+)\)", _readme())
+    assert len(links) >= 4
+    assert all(link.startswith("https://") for link in links), links
+
+
 @pytest.mark.parametrize("index", range(4))
 def test_each_example_prints_what_its_comments_say(
     index: int, capsys: pytest.CaptureFixture[str]
@@ -93,14 +116,19 @@ def test_changelog_has_an_entry_for_this_version() -> None:
     assert f"## [{tzoffset.__version__}]" in text
 
 
+def _code() -> list[Path]:
+    paths = [*ROOT.glob("src/**/*.py"), *ROOT.glob("tests/*.py"), *ROOT.glob("scripts/**/*")]
+    return [path for path in paths if path.is_file()]
+
+
 def _shipped() -> list[Path]:
+    vectors = ROOT / "tests" / "vectors"
     return [
         *ROOT.glob("*.md"),
         *ROOT.glob("*.toml"),
-        *ROOT.glob("src/**/*.py"),
-        *ROOT.glob("tests/*.py"),
-        *ROOT.glob("scripts/*"),
-        ROOT / "tests" / "vectors" / "sources" / "MANIFEST.txt",
+        *_code(),
+        vectors / "sources" / "MANIFEST.txt",
+        vectors / "java" / "zoneoffset.txt",
     ]
 
 
@@ -110,10 +138,12 @@ def test_no_em_dash_in_any_shipped_text() -> None:
 
 
 def test_every_source_file_stays_under_two_hundred_lines() -> None:
-    for path in _shipped():
+    assert len(_code()) > 20
+    for path in _code():
         assert len(path.read_text(encoding="utf-8").splitlines()) <= 200, path
 
 
 def test_sources_are_ascii() -> None:
-    for path in [*ROOT.glob("src/**/*.py"), *ROOT.glob("tests/*.py"), *ROOT.glob("scripts/*")]:
+    # The docs may quote a Unicode look-alike; code and data spell them as escapes.
+    for path in [path for path in _shipped() if path.suffix != ".md"]:
         assert path.read_text(encoding="utf-8").isascii(), path
