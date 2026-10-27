@@ -74,6 +74,20 @@ def test_a_datetime_subclass_is_read_by_its_stored_tzinfo() -> None:
     assert format_offset(_OwnOffset(2026, 1, 1, tzinfo=plus_two)) == "+02:00"
 
 
+class _OwnTzinfo(datetime):
+    """A datetime whose tzinfo attribute lies about the stored one."""
+
+    @property
+    def tzinfo(self) -> timezone:
+        return timezone(timedelta(hours=5))
+
+
+def test_a_datetime_subclass_cannot_swap_its_tzinfo() -> None:
+    assert format_offset(_OwnTzinfo(2026, 1, 1, tzinfo=timezone.utc)) == "+00:00"
+    with pytest.raises(OffsetError, match="naive datetime"):
+        format_offset(_OwnTzinfo(2026, 1, 1))
+
+
 class _Lie(timedelta):
     """A timedelta whose fields and repr lie; only the stored value may count."""
 

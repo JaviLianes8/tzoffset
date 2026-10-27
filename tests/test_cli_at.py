@@ -11,7 +11,7 @@ import pytest
 from conftest import source_text
 
 from tzoffset._cli import main
-from tzoffset._cli_zone import moment
+from tzoffset._cli_zone import _extended, moment
 
 UTC = timezone.utc
 
@@ -78,6 +78,21 @@ def test_rfc3339_examples_work_from_the_command_line(
 def test_any_fraction_of_a_second_is_read(text: str, microsecond: int) -> None:
     assert moment(f"2026-07-01T{text}").microsecond == microsecond
     assert moment(f"2026-07-01T{text}+09:00").utcoffset() == timedelta(hours=9)
+
+
+@pytest.mark.parametrize(
+    ("text", "spelled"),
+    [
+        ("2026-07-01T12:00:00.5", "2026-07-01T12:00:00.500000"),
+        ("2026-07-01t12:00:00,25", "2026-07-01t12:00:00.250000"),
+        ("2026-07-01 12:00:60.1234567", "2026-07-01 12:00:59.123456"),
+        ("2026-07-01T12:00:00", "2026-07-01T12:00:00"),
+        ("2026-07-01T12:00", "2026-07-01T12:00"),
+    ],
+)
+def test_seconds_are_spelled_the_way_python_3_10_reads_them(text: str, spelled: str) -> None:
+    # fromisoformat of 3.11 and later reads every input here; 3.10 only the spelled forms.
+    assert _extended(text) == spelled
 
 
 def test_a_naive_leap_second_is_read_as_second_59() -> None:
