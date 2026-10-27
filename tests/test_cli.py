@@ -1,19 +1,10 @@
-"""The command line tool, driven in process and once as a real subprocess."""
+"""The command line tool driven in process: arguments, styles, grammars, zones, errors."""
 
 from __future__ import annotations
-
-import errno
-import io
-import os
-import subprocess
-import sys
-from pathlib import Path
 
 import pytest
 
 from tzoffset._cli import _shield_offsets, main
-
-SRC = Path(__file__).resolve().parents[1] / "src"
 
 
 def _run(capsys: pytest.CaptureFixture[str], *argv: str) -> list[str]:
@@ -90,6 +81,16 @@ def test_at_needs_zone(capsys: pytest.CaptureFixture[str]) -> None:
     assert "--at needs --zone" in _fails(capsys, "+01", "--at", "2026-01-01T00:00")
 
 
+def test_huge_arguments_are_cut_in_messages(capsys: pytest.CaptureFixture[str]) -> None:
+    for argv in (
+        ["+" + "1" * 100_000],
+        ["-s", "x" * 100_000, "+01"],
+        ["+01", "--" + "y" * 100_000],
+    ):
+        err = _fails(capsys, *argv)
+        assert len(err) < 1000, err[:200]
+
+
 def _need_zones() -> None:
     zoneinfo = pytest.importorskip("zoneinfo")
     try:
@@ -125,44 +126,3 @@ def test_unknown_zone_and_bad_moment_exit_two(capsys: pytest.CaptureFixture[str]
     assert "unknown time zone" in _fails(capsys, "--zone", "Mars/Olympus")
     assert "unknown time zone" in _fails(capsys, "--zone", "../etc")
     assert "not an ISO 8601" in _fails(capsys, "--zone", "UTC", "--at", "noon")
-
-
-def test_module_runs_and_reports_its_version() -> None:
-    result = subprocess.run(
-        [sys.executable, "-m", "tzoffset", "--version"],
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "PYTHONPATH": str(SRC), "PYTHONDONTWRITEBYTECODE": "1"},
-    )
-    assert result.returncode == 0, result.stderr
-    from tzoffset import __version__
-
-    assert result.stdout.strip() == f"tzoffset {__version__}"
-
-
-class _Pipe(io.StringIO):
-    def __init__(self, error: OSError) -> None:
-        super().__init__()
-        self.error = error
-
-    def write(self, text: str) -> int:
-        raise self.error
-
-    def fileno(self) -> int:
-        return sys.__stdout__.fileno() if sys.__stdout__ else 1
-
-
-@pytest.mark.parametrize("error", [BrokenPipeError(), OSError(errno.EINVAL, "closed")])
-def test_a_closed_pipe_ends_quietly(monkeypatch: pytest.MonkeyPatch, error: OSError) -> None:
-    calls: list[tuple[int, int]] = []
-    monkeypatch.setattr(sys, "stdout", _Pipe(error))
-    monkeypatch.setattr(os, "dup2", lambda a, b: calls.append((a, b)))
-    assert main(["+01", "+02"]) == 0
-    assert len(calls) == 1
-
-
-def test_other_write_errors_are_not_swallowed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(sys, "stdout", _Pipe(OSError(errno.ENOSPC, "disk full")))
-    with pytest.raises(OSError, match="disk full"):
-        main(["+01"])

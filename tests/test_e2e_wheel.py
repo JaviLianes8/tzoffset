@@ -75,8 +75,10 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     (sdist,) = dist.glob("tzoffset-*.tar.gz")
     with tarfile.open(sdist) as archive:
         members = archive.getnames()
-    data = [name for name in members if "/tests/vectors/" in name]
-    assert data == [name for name in data if name.endswith("/MANIFEST.txt")]
+    # Third-party sources stay out; only their manifest and the recorded Java output ship.
+    data = sorted(name.split("/tests/vectors/")[1] for name in members if "/tests/vectors/" in name)
+    assert data == ["java/zoneoffset.txt", "sources/MANIFEST.txt"]
+    assert not [name for name in members if "CERT-1.0" in name or "IMPROVEMENTS" in name]
 
     env_dir = tmp_path / "venv"
     venv.create(env_dir, with_pip=True)

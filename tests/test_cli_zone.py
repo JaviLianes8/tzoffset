@@ -7,14 +7,24 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from tzoffset._cli import _moment, main
+from tzoffset._cli import main
+from tzoffset._cli_zone import moment
 
 
 def _fails(capsys: pytest.CaptureFixture[str], *argv: str) -> str:
     with pytest.raises(SystemExit) as stop:
         main(list(argv))
     assert stop.value.code == 2
-    return capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    return captured.err
+
+
+def _need_zones() -> None:
+    try:
+        zoneinfo.ZoneInfo("America/New_York")
+    except zoneinfo.ZoneInfoNotFoundError:
+        pytest.skip("no time zone database")
 
 
 @pytest.mark.parametrize(
@@ -30,21 +40,21 @@ def _fails(capsys: pytest.CaptureFixture[str], *argv: str) -> str:
     ],
 )
 def test_at_reads_offsets_on_every_python(text: str, offset: timedelta) -> None:
-    moment = _moment(text)
-    assert moment.utcoffset() == offset
-    assert moment.replace(tzinfo=None, microsecond=0) == datetime(2026, 3, 8, 7)
+    when = moment(text)
+    assert when.utcoffset() == offset
+    assert when.replace(tzinfo=None, microsecond=0) == datetime(2026, 3, 8, 7)
 
 
 @pytest.mark.parametrize("text", ["2026-03-08T07:00", "2026-03-08", "2026-03-08T07"])
 def test_at_without_offset_is_naive(text: str) -> None:
-    assert _moment(text).tzinfo is None
-    assert _moment(text).date() == datetime(2026, 3, 8).date()
+    assert moment(text).tzinfo is None
+    assert moment(text).date() == datetime(2026, 3, 8).date()
 
 
 @pytest.mark.parametrize("text", ["2026-03-08T07:00+25:00", "2026-03-08T07:00+09:0", "noon"])
 def test_at_rejects_bad_text(text: str) -> None:
     with pytest.raises(ValueError):
-        _moment(text)
+        moment(text)
 
 
 def test_missing_database_is_named(
@@ -81,23 +91,55 @@ def test_a_folder_of_the_database_is_not_a_zone(
 
 
 def test_a_real_folder_name_exits_two(capsys: pytest.CaptureFixture[str]) -> None:
-    try:
-        zoneinfo.ZoneInfo("America/New_York")
-    except zoneinfo.ZoneInfoNotFoundError:
-        pytest.skip("no time zone database")
+    _need_zones()
     for name in ("America", "Etc"):
         assert "unknown time zone" in _fails(capsys, "--zone", name)
 
 
 def test_at_with_z_converts_on_every_python(capsys: pytest.CaptureFixture[str]) -> None:
-    try:
-        zoneinfo.ZoneInfo("America/New_York")
-    except zoneinfo.ZoneInfoNotFoundError:
-        pytest.skip("no time zone database")
+    _need_zones()
     for at, expected in [("2026-03-08T07:00z", "-04:00"), ("2026-03-08T15:59+0900", "-05:00")]:
         assert main(["--zone", "America/New_York", "--at", at]) == 0
         assert capsys.readouterr().out.split() == [expected]
 
 
 def test_moment_keeps_the_utc_singleton() -> None:
-    assert _moment("2026-03-08T07:00Z").tzinfo is timezone.utc
+    assert moment("2026-03-08T07:00Z").tzinfo is timezone.utc
+
+
+@pytest.mark.parametrize(
+    ("zone", "at"),
+    [
+        ("America/New_York", "0001-01-01T00:00+05:00"),
+        ("Asia/Tokyo", "9999-12-31T23:59-05:00"),
+        ("Etc/GMT-14", "9999-12-31T23:59Z"),
+    ],
+)
+def test_an_instant_past_the_calendar_in_the_zone_exits_two(
+    capsys: pytest.CaptureFixture[str], zone: str, at: str
+) -> None:
+    _need_zones()
+    assert "--at is out of range in" in _fails(capsys, "--zone", zone, "--at", at)
+
+
+def test_the_ends_of_the_calendar_still_work_as_wall_time(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _need_zones()
+    assert main(["--zone", "America/New_York", "--at", "0001-01-01T00:00"]) == 0
+    assert main(["--zone", "Asia/Tokyo", "--at", "9999-12-31T23:59"]) == 0
+    assert capsys.readouterr().out.split() == ["-04:56:02", "+09:00"]
+
+
+def test_dash_led_zone_and_at_values_arrive_intact(capsys: pytest.CaptureFixture[str]) -> None:
+    _need_zones()
+    assert "unknown time zone: '-05'" in _fails(capsys, "--zone", "-05")
+    assert "'-2026-01-01'" in _fails(capsys, "--zone", "UTC", "--at", "-2026-01-01")
+
+
+def test_huge_zone_and_at_values_are_cut_in_messages(capsys: pytest.CaptureFixture[str]) -> None:
+    _need_zones()
+    for argv in (["--zone", "Z" * 100_000], ["--zone", "UTC", "--at", "2" * 100_000]):
+        err = _fails(capsys, *argv)
+        assert "(100000 characters)" in err
+        assert len(err) < 1000

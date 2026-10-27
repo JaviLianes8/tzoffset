@@ -4,16 +4,17 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tzoffset"
-version = "0.2.0"
+version = "1.0.0"
 description = "Parse and format bare numeric UTC offsets (Z, +05:30, -0800) both ways"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = ["utc offset", "timezone", "rfc3339", "iso8601", "datetime", "parser", "formatter"]
+keywords = ["utc offset", "timezone", "time zone", "rfc3339", "rfc9557", "iso8601", "datetime", "parser", "formatter", "cli"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -24,23 +25,49 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities",
     "Typing :: Typed",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "build", "twine", "tzdata"]
+# tzdata gives zoneinfo a database on Windows; python-dateutil and rfc3339-validator are
+# independent parsers the tests compare against. None of them is needed at run time.
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-timeout",
+    "build",
+    "twine",
+    "tzdata",
+    "python-dateutil",
+    "rfc3339-validator",
+]
 
 [project.scripts]
 tzoffset = "tzoffset._cli:main"
 
 [project.urls]
 Homepage = "https://lianes8studio.com"
-Repository = "https://github.com/JaviLianes8/tzoffset"
+Source = "https://github.com/JaviLianes8/tzoffset"
 Issues = "https://github.com/JaviLianes8/tzoffset/issues"
+Documentation = "https://github.com/JaviLianes8/tzoffset/blob/main/GUIDE.md"
 Changelog = "https://github.com/JaviLianes8/tzoffset/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
 Funding = "https://buymeacoffee.com/jlianesglrs"
+
+[tool.hatch.build.targets.sdist]
+# Third-party sources are fetched locally and never shipped; only their manifest is.
+exclude = [
+    ".github",
+    ".gitignore",
+    ".gitattributes",
+    "IMPROVEMENTS-round*.md",
+    "CERT-1.0-*.md",
+    "tests/vectors/sources/*",
+    "!tests/vectors/sources/MANIFEST.txt",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tzoffset"]
@@ -57,6 +84,7 @@ python_version = "3.10"
 strict = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src", "tests"]
 pythonpath = ["src"]
-addopts = "-q"
+addopts = "-q --doctest-modules"
+timeout = 300

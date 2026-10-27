@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.resources
+import pickle
 import typing
 
 import tzoffset
@@ -22,6 +23,11 @@ def test_all_lists_exactly_the_public_api() -> None:
     assert sorted(tzoffset.__all__) == sorted(PUBLIC_API)
 
 
+def test_nothing_else_is_public_at_the_package_top() -> None:
+    public = [name for name in dir(tzoffset) if not name.startswith("_")]
+    assert sorted(public) == sorted(PUBLIC_API)
+
+
 def test_every_exported_name_resolves() -> None:
     for name in tzoffset.__all__:
         assert hasattr(tzoffset, name)
@@ -39,6 +45,13 @@ def test_the_package_ships_type_information() -> None:
 
 def test_offset_error_is_a_value_error() -> None:
     assert issubclass(tzoffset.OffsetError, ValueError)
+
+
+def test_offset_error_shows_and_pickles_under_the_package_name() -> None:
+    assert tzoffset.OffsetError.__module__ == "tzoffset"
+    assert b"tzoffset._errors" not in pickle.dumps(tzoffset.OffsetError("bad"))
+    again = pickle.loads(pickle.dumps(tzoffset.OffsetError("bad")))
+    assert (type(again), str(again)) == (tzoffset.OffsetError, "bad")
 
 
 def test_the_literal_aliases_list_the_accepted_values() -> None:
