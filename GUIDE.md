@@ -94,9 +94,11 @@ style what `strftime("%z")` writes; the tests check both for every whole minute 
 offsets with seconds, and check all four spellings against `java.time.ZoneOffset`.
 
 A subclass of `timedelta` or `datetime` is read by its stored value: an overridden `days`,
-`seconds`, `utcoffset` or `__repr__` is never used. The offset of an aware `datetime` comes
-from its `tzinfo` and is checked like any other, so an offset of a day or more is an
-`OffsetError` whichever way it arrives.
+`seconds`, `utcoffset`, `__add__`, `__radd__` or `__repr__` is never used. An object that
+only claims to be one, such as `unittest.mock.Mock(spec=timedelta)`, is not read at all: it
+is a `TypeError`. The offset of an aware `datetime` comes from its `tzinfo`, which is asked
+once, and is checked like any other, so an offset of a day or more is an `OffsetError`
+whichever way it arrives.
 
 ## Types for type checkers: `Grammar`, `Style` and `Zero`
 
@@ -130,9 +132,10 @@ print(typing.get_args(Style), typing.get_args(Zero))
 `OffsetError` is a `ValueError`, so existing `except ValueError` handlers keep working. A
 message quotes at most 40 characters of a text argument, followed by its length when it is
 longer; an offset is shown as its exact `timedelta` (`datetime.timedelta(days=2)`), a naive
-`datetime` by its `isoformat()` and any other object by its type name, cut to 40
-characters. So a huge or hostile argument never becomes a huge message. A subclass of `str`
-is read by its characters only: its own `strip`, `__eq__` or `__repr__` are never called.
+`datetime` by its stored date and time in ISO 8601 form and any other object by its type
+name, cut to 40 characters. So a huge or hostile argument never becomes a huge message. A
+subclass of `str` is read by its characters only: its own `strip`, `__eq__` or `__repr__`
+are never called.
 
 ## Command line
 

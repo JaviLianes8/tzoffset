@@ -1,6 +1,8 @@
-"""Command line arguments: values after "--" and the cut of long usage messages."""
+"""Command line arguments: values after "--", option values, help and long usage messages."""
 
 from __future__ import annotations
+
+import argparse
 
 import pytest
 
@@ -67,3 +69,40 @@ def test_the_cut_starts_past_two_hundred_characters(
     line = capsys.readouterr().err.splitlines()[-1]
     expected = "m" * 197 + "..." if cut else "m" * size
     assert line == PREFIX + expected
+
+
+@pytest.mark.parametrize(
+    ("argv", "shown"),
+    [
+        (["-s", "-05:00", "+01"], "argument -s/--style: invalid choice: '-05:00'"),
+        (["-z", "-05", "+01"], "argument -z/--zero: invalid choice: '-05'"),
+        (["-g", "-1", "+01"], "argument -g/--grammar: invalid choice: '-1'"),
+        (["--style=-05:00", "+01"], "argument -s/--style: invalid choice: '-05:00'"),
+    ],
+)
+def test_a_rejected_option_value_is_quoted_as_typed(
+    capsys: pytest.CaptureFixture[str], argv: list[str], shown: str
+) -> None:
+    # The private mark that keeps "-05:00" a value must never reach the user.
+    message = _error_line(capsys, *argv)
+    assert message.startswith(shown), message
+    assert "\x00" not in message and "\\x00" not in message
+
+
+def test_help_names_the_default_each_option_really_uses(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as stop:
+        main(["--help"])
+    assert stop.value.code == 0
+    shown = " ".join(capsys.readouterr().out.split())
+    named = {}
+    for action in _parser()._actions:
+        if action.option_strings and action.default not in (None, argparse.SUPPRESS):
+            assert isinstance(action.help, str)
+            assert f"(default {action.default})" in action.help, action.dest
+            assert " ".join(action.help.split()) in shown, action.dest
+            named[action.dest] = action.default
+    assert named == {"style": "colon", "zero": "+", "grammar": "lenient"}
+    assert "(default: now)" in shown
+    assert "(Python 3.11 and later also read the basic form 20260701T120000Z)" in shown

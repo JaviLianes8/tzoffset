@@ -58,15 +58,27 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "offsets", nargs="*", type=_unshield, metavar="OFFSET", help="offsets to rewrite"
     )
+    # Every option that takes a value removes the mark, so a rejected value is shown as typed.
     parser.add_argument(
-        "-s", "--style", choices=STYLES, default="colon", help="output style (default colon)"
+        "-s",
+        "--style",
+        type=_unshield,
+        choices=STYLES,
+        default="colon",
+        help="output style (default colon)",
     )
     parser.add_argument(
-        "-z", "--zero", choices=ZEROS, default="+", help="how to write a zero offset (default +)"
+        "-z",
+        "--zero",
+        type=_unshield,
+        choices=ZEROS,
+        default="+",
+        help="how to write a zero offset (default +)",
     )
     parser.add_argument(
         "-g",
         "--grammar",
+        type=_unshield,
         choices=GRAMMARS,
         default="lenient",
         help="input grammar (default lenient)",

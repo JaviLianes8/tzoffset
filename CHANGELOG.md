@@ -39,14 +39,19 @@ defaults and accepted values of 0.2.0.
   `str` names the parameter: `text must be a str, not int` (it said `offset`).
 - A subclass of `str` is read by its characters only; its own methods are not called. A
   subclass of `timedelta` or `datetime` is read by its stored value: an overridden `days`,
-  `seconds`, `utcoffset` or `__repr__` no longer changes the result or the message.
+  `seconds`, `utcoffset`, `__add__`, `__radd__` or `__repr__` no longer changes the result
+  or the message. An object that only claims to be a `timedelta` or `datetime` through its
+  `__class__`, such as `unittest.mock.Mock(spec=timedelta)`, raises `TypeError` (also when
+  a `tzinfo` returns it). The `tzinfo` of a `datetime` is asked for its offset once: the
+  message for a naive `datetime` is built from its stored fields.
 - `OffsetError` shows and pickles as `tzoffset.OffsetError`.
 - Command line: a reader that closes the output early (`| head`) gives exit status 1
   instead of 0, also for `--help` and `--version`; `--zone` and `--at` values that start
   with `-` are read as values; an `--at` that falls outside years 1 to 9999 in the zone
   exits with status 2 and a message instead of a traceback; usage messages are cut to
   200 characters. Values after `--` are offsets on every Python (3.10 and 3.11 refused
-  `tzoffset -- -05:30`).
+  `tzoffset -- -05:30`). A rejected `-s`, `-z` or `-g` value that starts with `-` is
+  quoted as typed.
 - Command line `--at`: a fraction of a second of any length, a comma as the decimal mark
   and a leap second (second 60, read as 59) are read on every Python, so every RFC 3339
   timestamp works on 3.10 too; text it cannot read gives `cannot read --at as a date and

@@ -14,10 +14,10 @@ pip install -r requirements-dev.txt
 - Add a test for the behaviour you change, one behaviour per test. What the suite
   touches for real: it reads files (the README, the GUIDE, the recorded vectors, the time
   zone database, and the fetched third-party sources, whose tests skip while those are
-  absent); one command line test reads the real clock, in zones whose offset has not
-  changed in decades; and the wheel test (`TZOFFSET_E2E=1`) builds the package, which
-  downloads the build backend, and installs it into a new virtual environment. Nothing
-  else uses the network.
+  absent); the command line tests of `--zone` without `--at` read the real clock, in
+  zones whose offset has not changed in decades; and the wheel test (`TZOFFSET_E2E=1`)
+  builds the package, which downloads the build backend, and installs it into a new
+  virtual environment. Nothing else uses the network.
 - Run `scripts/check.ps1` (format, lint, types, tests) and make sure it passes.
 - One logical change per commit, imperative subject line.
 

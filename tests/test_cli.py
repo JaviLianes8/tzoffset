@@ -118,11 +118,6 @@ def test_zone_at_an_aware_moment_is_converted(capsys: pytest.CaptureFixture[str]
     assert _run(capsys, *zone, "--at", "2026-03-08T12:00+09:00") == ["-05:00"]
 
 
-def test_zone_without_at_uses_now(capsys: pytest.CaptureFixture[str]) -> None:
-    _need_zones()
-    assert _run(capsys, "--zone", "UTC", "--zero", "Z") == ["Z"]
-
-
 def test_unknown_zone_and_bad_moment_exit_two(capsys: pytest.CaptureFixture[str]) -> None:
     _need_zones()
     assert "unknown time zone" in _fails(capsys, "--zone", "Mars/Olympus")

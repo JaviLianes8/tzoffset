@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, tzinfo
+from datetime import date, datetime, timedelta, tzinfo
+from typing import TypeGuard, TypeVar
 
 from ._checks import choice, kind
 from ._errors import OffsetError
 from ._types import STYLES, ZEROS, Style, Zero
 
 _SECONDS_PER_DAY = 24 * 3600
+_T = TypeVar("_T")
 # The C-level tzinfo field of a datetime, which a subclass cannot override.
 _DATETIME_TZINFO = vars(datetime)["tzinfo"]
+# The C-level date and time fields of a datetime, for a message that asks nobody else.
+_FIELDS = tuple(vars(date)[name] for name in ("year", "month", "day")) + tuple(
+    vars(datetime)[name] for name in ("hour", "minute", "second", "microsecond")
+)
 
 
 def format_offset(
@@ -31,7 +37,8 @@ def format_offset(
     ``style`` or ``zero``; ``TypeError`` for a ``value`` of another type, a ``tzinfo``
     (also the one of a ``datetime``) whose ``utcoffset`` returns something other than a
     ``timedelta`` or ``None``, or a ``style`` or ``zero`` that is not a ``str``. A subclass
-    of ``timedelta`` or ``datetime`` is read by its stored value, never by its own methods.
+    of ``timedelta`` or ``datetime`` is read by its stored value, never by its own methods;
+    an object that only claims to be one (a mock with ``spec=timedelta``) is a ``TypeError``.
 
     >>> from datetime import timedelta, timezone
     >>> from tzoffset import format_offset
@@ -73,15 +80,15 @@ def format_offset(
 def _as_timedelta(value: object) -> timedelta:
     # Every offset is copied into an exact timedelta first: a subclass may override days,
     # seconds or __repr__, and only the stored value may count.
-    if isinstance(value, timedelta):
+    if _is(value, timedelta):
         return _exact(value)
-    if isinstance(value, datetime):
+    if _is(value, datetime):
         # The tzinfo is read from the datetime itself and range-checked here, so a subclass
         # cannot change the offset and an offset of a day or more is an OffsetError.
         zone = _DATETIME_TZINFO.__get__(value, datetime)
         offset = None if zone is None else _offset(zone, value)
         if offset is None:
-            raise OffsetError(f"a naive datetime has no UTC offset: {datetime.isoformat(value)}")
+            raise OffsetError(f"a naive datetime has no UTC offset: {_naive_text(value)}")
         return offset
     if isinstance(value, tzinfo):
         fixed = _offset(value, None)
@@ -98,7 +105,7 @@ def _offset(zone: tzinfo, moment: datetime | None) -> timedelta | None:
     offset: object = zone.utcoffset(moment)
     if offset is None:
         return None
-    if not isinstance(offset, timedelta):
+    if not _is(offset, timedelta):
         at = "None" if moment is None else "a datetime"
         raise TypeError(
             f"{kind(zone)}.utcoffset({at}) returned {kind(offset)}, not a timedelta or None"
@@ -109,3 +116,14 @@ def _offset(zone: tzinfo, moment: datetime | None) -> timedelta | None:
 def _exact(delta: timedelta) -> timedelta:
     # timedelta.__add__ reads the stored fields and returns a plain timedelta.
     return timedelta.__add__(timedelta(0), delta)
+
+
+def _is(value: object, cls: type[_T]) -> TypeGuard[_T]:
+    # Only the real type counts: Mock(spec=timedelta) passes isinstance through a spoofed
+    # __class__ without holding the stored fields this module reads.
+    return issubclass(type(value), cls)
+
+
+def _naive_text(value: datetime) -> str:
+    # The tzinfo is not asked again: it may answer differently the second time.
+    return datetime(*(field.__get__(value) for field in _FIELDS)).isoformat()

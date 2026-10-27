@@ -118,13 +118,29 @@ def test_the_basic_form_follows_the_running_python(capsys: pytest.CaptureFixture
         assert "cannot read --at" in _err(capsys, *argv)
 
 
-@pytest.mark.parametrize(("zone", "expected"), [("Asia/Tokyo", "+09:00"), ("Etc/GMT-14", "+14:00")])
+@pytest.mark.parametrize(
+    "at",
+    [
+        "2026-07-01T12:00:00garbage",
+        "2026-07-01T12:00:00.5garbage",
+        "2026-07-01T12:00:00 UTC",
+        "2026-07-01T12:00:00,25 UTC",
+    ],
+)
+def test_text_after_the_seconds_is_refused(capsys: pytest.CaptureFixture[str], at: str) -> None:
+    _need_zones()
+    assert "cannot read --at as a date and time" in _err(capsys, "--zone", "Asia/Tokyo", "--at", at)
+
+
+@pytest.mark.parametrize(
+    ("zone", "expected"), [("UTC", "Z"), ("Asia/Tokyo", "+09:00"), ("Etc/GMT-14", "+14:00")]
+)
 def test_zone_without_at_is_the_offset_in_that_zone_now(
     capsys: pytest.CaptureFixture[str], zone: str, expected: str
 ) -> None:
-    # Both zones have kept one offset for decades, so the real clock gives a known answer.
+    # These zones have kept one offset for decades, so the real clock gives a known answer.
     _need_zones()
-    assert _out(capsys, "--zone", zone) == expected
+    assert _out(capsys, "--zone", zone, "--zero", "Z") == expected
 
 
 @pytest.mark.parametrize(
