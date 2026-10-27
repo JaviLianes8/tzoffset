@@ -14,6 +14,7 @@ Progress:
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e, every Python on this PC (items 8, 10, 13, 14)
 - [x] Gates (item 15)
+- [x] QA lenses round 1: 23 findings fixed (7989756, 5162d8a); see QA lenses
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 - [x] PR #3 and trace guard CLEAN (item 17); merge and publish left to the maintainer
@@ -40,7 +41,7 @@ Progress:
 | 16 | Independent reviewer | pending (orchestrator) |
 | 17 | PR and trace guard | PR #3, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author round 28 of 28 killed |
-| 19 | Five independent QA lenses | pending (orchestrator) |
+| 19 | Five independent QA lenses | round 1 fixed (see QA lenses); re-verification by the lenses pending |
 
 ## API review (item 1)
 
@@ -190,3 +191,75 @@ above; the configured `testpaths` include `src`, so the 8 doctest items run with
 
 PR #3 (https://github.com/JaviLianes8/tzoffset/pull/3) from `release/1.0.0` to `main`;
 the trace guard reports CLEAN on it. Merge and publish are left to the maintainer.
+
+## QA lenses (item 19)
+
+### Round 1
+
+Five independent QA lenses reviewed 7dc5b6d: a (API and docs), b (correctness and
+ground truth), c (adversarial), d (packaging and e2e), e (contract strength, own mutation
+round). 23 findings, all fixed; none disputed. Each behaviour bug got a contract test first,
+checked to fail on 7dc5b6d (on 3.10 and 3.11 for the version-bound ones) and to pass after
+the fix.
+
+| Lens | Id | Finding | Fix | Contract |
+| --- | --- | --- | --- | --- |
+| a | A-F1 | importing the package set `__doc__` on typing's shared `Literal` objects | aliases are no longer touched; their docs are `#:` comments, the `_types` docstring, a new GUIDE section and the `__test__` examples | `test_importing_leaves_the_shared_literal_objects_alone`, `test_every_alias_has_a_documented_example` |
+| a, c | A-F2, C-F1 | an aware `datetime` whose `tzinfo` returns a day or more raised a plain `ValueError` | the offset is read from the stored `tzinfo` and range-checked by the library: `OffsetError` | `test_a_datetime_with_an_offset_of_a_day_or_more_is_an_offset_error` |
+| a | A-F3 | "at most 40 characters" was promised for every argument, but a `timedelta` is shown whole | promise reworded in `OffsetError`, README and GUIDE: 40 characters of a text argument; an offset is shown as its exact `timedelta` | `test_offset_messages_show_the_exact_value` |
+| a, b | A-F4, B-F1 | `--at` refused RFC 3339 fractions on 3.10 and called valid text "not ISO 8601" | seconds are respelled before `fromisoformat` (any fraction length, comma mark); GUIDE and `--help` state the forms and that the basic form needs 3.11; new message `cannot read --at as a date and time` | `test_cli_at.py`: RFC 3339 section 5.8 timestamps (also read from the fetched RFC), fractions, `_extended`, basic form per version |
+| a | A-F5 | CONTRIBUTING said tests never touch time, disk or network | reworded to what the suite really reads, the one real-clock test and the e2e build | docs |
+| a | A-F6 | CHANGELOG older entries not in Keep a Changelog form | 0.2.0 and 0.1.0 dated (2026-10-13, 2026-10-12, commit dates), `### Added` in 0.1.0, link references | docs |
+| b | B-F2 | a leap second (second 60) was refused as "not ISO 8601" | second 60 is read as 59 of the same minute (documented in the GUIDE) | `test_rfc3339_examples_are_read_on_every_python`, `test_a_naive_leap_second_is_read_as_second_59` |
+| c | C-F2 | a `datetime` subclass overriding `utcoffset` gave `AttributeError` | the stored `tzinfo` is read through the C-level field; the override is never called | `test_a_datetime_subclass_is_read_by_its_stored_tzinfo`, `test_a_datetime_subclass_cannot_swap_its_tzinfo` |
+| c | C-F3 | `timedelta` subclasses were read through overridable fields | every offset is copied into an exact `timedelta` (`timedelta.__add__`) first | `test_a_timedelta_subclass_is_read_by_its_stored_value` |
+| d | D1 | `tzoffset -- -05:30` refused on 3.10 and 3.11 | dash-led values after `--` are shielded too | `test_every_value_after_a_double_dash_is_an_offset`, updated `test_dash_led_offsets_are_shielded_from_argparse` and `test_double_dash_still_works` |
+| d | D2 | sdist exclude list named `.gitignore`, which hatchling always ships | removed from the list with a comment; the e2e asserts every listed path is left out | `test_installed_wheel_end_to_end` |
+| e | Z06 | `--zone` without `--at` not pinned to the zone | zones with a fixed offset for decades | `test_zone_without_at_is_the_offset_in_that_zone_now` |
+| e | Z12 | the `fold=0` rule was unpinned | Europe/Madrid repeated and skipped 02:30 | `test_a_repeated_or_skipped_wall_time_takes_the_offset_before_the_change` |
+| e | F25, F26 | `timedelta.__repr__(delta)` to `delta!r` survived | the subclass case is now pinned; after the C-F3 fix `delta` is always an exact `timedelta`, so this mutant is equivalent (the mutant that drops the exact copy is killed) | `test_offset_messages_show_the_exact_value`, `test_a_timedelta_subclass_is_read_by_its_stored_value` |
+| e | F27 | `datetime.isoformat(value)` to `value.isoformat()` survived | pinned with a subclass whose `isoformat` is huge | `test_offset_messages_show_the_exact_value` |
+| e | L10, L16, L17 | the 200-character cut of usage messages was unpinned | exact length, `...` ending and the 200/201 boundary | `test_a_long_usage_message_is_cut_to_two_hundred_characters`, `test_the_cut_starts_past_two_hundred_characters` |
+| e | C02 | the 40-character quote boundary was unpinned | 40 and 41 characters | `test_a_text_of_forty_characters_is_quoted_whole` |
+| e | P28 | the `TypeError` message was unpinned and named `offset` for the `text` parameter | it now says `text must be a str, not int`; every option message pinned | `test_type_errors_name_the_parameter` |
+
+Lens c also noted (no finding) that exceptions raised by a caller's own `utcoffset`
+propagate unchanged; that is kept. From the observations of lens a: `--help` now shows the
+defaults of `--style` and `--grammar`; the README links to `blob/main` resolve only after
+the merge, so they are to be checked then.
+
+Mutation re-check of round 1, on 7989756, one mutant at a time, whole suite without the
+wheel build (CPython 3.14.2 on the PC of Elena, `recurso.sh` turn):
+
+| # | Mutation | Result |
+| --- | --- | --- |
+| 1 | Z06 zone without `--at` ignores the zone | killed: `test_cli_at.py::test_zone_without_at_is_the_offset_in_that_zone_now` |
+| 2 | Z12 naive `--at` uses `fold=1` | killed: `test_cli_at.py::test_a_repeated_or_skipped_wall_time_takes_the_offset_before_the_change` |
+| 3 | F25 range message uses `delta!r` | equivalent: `delta` is an exact `timedelta` |
+| 4 | F26 fraction message uses `delta!r` | equivalent: as above |
+| 5 | exact `timedelta` copy dropped | killed: `test_contract_values.py::test_a_timedelta_subclass_is_read_by_its_stored_value` |
+| 6 | F27 naive message uses `value.isoformat()` | killed: `test_contract_values.py::test_offset_messages_show_the_exact_value` |
+| 7 | L10 cut threshold 20,000 | killed: `test_cli_args.py::test_a_long_usage_message_is_cut_to_two_hundred_characters` |
+| 8 | L16 message limit 600 | killed: same test |
+| 9 | L17 cut without `...` | killed: same test |
+| 10 | cut boundary `>` to `>=` | killed: `test_cli_args.py::test_the_cut_starts_past_two_hundred_characters` |
+| 11 | C02 quote boundary `<=` to `<` | killed: `test_contract_values.py::test_a_text_of_forty_characters_is_quoted_whole` |
+| 12 | P28 `TypeError` names `offset` | killed: `test_contract_values.py::test_type_errors_name_the_parameter` |
+| 13 | A-F1 alias `__doc__` set again | killed: `test_contract_values.py::test_importing_leaves_the_shared_literal_objects_alone` |
+| 14 | A-F2 datetime offset read by `value.utcoffset()` | killed: `test_contract_values.py::test_a_datetime_with_an_offset_of_a_day_or_more_is_an_offset_error` |
+| 15 | C-F2 datetime `tzinfo` read by attribute | survived on 7989756; killed from 5162d8a by `test_contract_values.py::test_a_datetime_subclass_cannot_swap_its_tzinfo` |
+| 16 | D1 values after `--` not shielded | killed: `test_cli.py::test_dash_led_offsets_are_shielded_from_argparse` |
+| 17 | B-F2 leap second kept as 60 | killed: `test_cli_at.py::test_rfc3339_examples_are_read_on_every_python` |
+| 18 | B-F1 fraction not padded | killed only on 3.10 on 7989756 (3.11 and later read any fraction); killed on every Python from 5162d8a by `test_cli_at.py::test_seconds_are_spelled_the_way_python_3_10_reads_them` |
+
+Interpreter matrix on 7989756 (PC of Elena, `recurso.sh` turn, fresh clone with the fetched
+sources, wheel e2e included): 3.10.19 419 passed and 1 skipped (`fromisoformat` reads
+offsets only from 3.11); 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded 420
+passed; 3.13.11 free-threaded 410 passed and 2 skipped (no mypy wheel).
+
+Commits of the round: 7989756 (fixes, docs and contracts), 5162d8a (contracts for the two
+re-check survivors), then this report.
+
+### Disputed findings
+
+None in round 1.
