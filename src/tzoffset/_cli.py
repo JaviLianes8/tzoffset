@@ -92,19 +92,27 @@ def _lines(parser: argparse.ArgumentParser, argv: Sequence[str]) -> list[str]:
         parser.error(str(error))
 
 
+def _reader_gone(error: OSError) -> bool:
+    # The reader went away (``| head``). Windows reports EINVAL rather than EPIPE.
+    return isinstance(error, BrokenPipeError) or error.errno == errno.EINVAL
+
+
+def _silence() -> None:
+    # Python flushes standard output again at exit; point it at devnull so that is quiet.
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, sys.stdout.fileno())
+    os.close(devnull)
+
+
 def _deliver(text: str) -> bool:
     """Write ``text`` to standard output and flush it; False when the reader has gone away."""
     try:
         sys.stdout.write(text)
         sys.stdout.flush()
     except OSError as error:
-        # The reader went away (``| head``). Windows reports EINVAL rather than EPIPE.
-        if not isinstance(error, BrokenPipeError) and error.errno != errno.EINVAL:
+        if not _reader_gone(error):
             raise
-        # Python flushes standard output again at exit; point it at devnull so that is quiet.
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        os.dup2(devnull, sys.stdout.fileno())
-        os.close(devnull)
+        _silence()
         return False
     return True
 
@@ -119,9 +127,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         lines = _lines(parser, sys.argv[1:] if argv is None else argv)
     except SystemExit as stop:
-        # --help and --version print through argparse, which ignores write errors, so their
+        # From Python 3.11 argparse ignores write errors of --help and --version, so their
         # text may still wait in the buffer of a closed pipe.
         if not _deliver("") and stop.code == 0:
             raise SystemExit(1) from None
         raise
+    except OSError as error:
+        # Python 3.10's argparse lets the write error of --help or --version through.
+        if not _reader_gone(error):
+            raise
+        _silence()
+        raise SystemExit(1) from None
     return 0 if _deliver("".join(line + "\n" for line in lines)) else 1

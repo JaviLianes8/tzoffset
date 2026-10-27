@@ -82,3 +82,26 @@ def test_other_write_errors_are_not_swallowed(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(sys, "stdout", _Pipe(OSError(errno.ENOSPC, "disk full")))
     with pytest.raises(OSError, match="disk full"):
         main(["+01"])
+
+
+def test_a_write_error_while_parsing_is_handled_like_one_while_printing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Python 3.10's argparse lets the write error of --help and --version escape.
+    import tzoffset._cli as cli
+
+    def lost(parser: object, argv: object) -> list[str]:
+        raise BrokenPipeError
+
+    monkeypatch.setattr(cli, "_lines", lost)
+    monkeypatch.setattr(os, "dup2", lambda a, b: None)
+    with pytest.raises(SystemExit) as stop:
+        main(["--help"])
+    assert stop.value.code == 1
+
+    def full(parser: object, argv: object) -> list[str]:
+        raise OSError(errno.ENOSPC, "disk full")
+
+    monkeypatch.setattr(cli, "_lines", full)
+    with pytest.raises(OSError, match="disk full"):
+        main(["--help"])
