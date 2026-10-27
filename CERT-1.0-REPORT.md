@@ -15,6 +15,7 @@ Progress:
 - [x] Packaging, e2e, every Python on this PC (items 8, 10, 13, 14)
 - [x] Gates (item 15)
 - [x] QA lenses round 1: 23 findings fixed (7989756, 5162d8a); see QA lenses
+- [x] QA lenses round 2: 7 findings fixed (287b0be); see QA lenses
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 - [x] PR #3 and trace guard CLEAN (item 17); merge and publish left to the maintainer
@@ -265,6 +266,65 @@ CPython 3.13.2): `ruff format --check .`, `ruff check .`, `mypy --strict src` an
 Commits of the round: 7989756 (fixes, docs and contracts), 5162d8a (contracts for the two
 re-check survivors), then this report.
 
+### Round 2
+
+Lenses a, c and e re-checked 84b84ea: every round 1 finding they owned is fixed, except
+A-F5, which was only partly fixed (A2-F1 below). They reported 7 new findings, all low and
+all fixed; none disputed. Each behaviour bug got a contract test first, checked to fail on
+84b84ea (CPython 3.10.19 and 3.13.2) and to pass after the fix. Findings N37, N20 and H01
+were missing contracts on correct code: their contracts were checked to kill the mutants
+the lens reported.
+
+| Lens | Id | Finding | Fix | Contract |
+| --- | --- | --- | --- | --- |
+| a | A2-F1 | CONTRIBUTING spoke of one real-clock test; two test functions (three cases) run `--zone` without `--at` | reworded to "the command line tests of `--zone` without `--at`"; the older UTC test is folded into the parametrized one | docs |
+| a | A2-F2 | the naive `datetime` message called `isoformat()`, which asked the `tzinfo` a second time; a `tzinfo` answering `None` and then a day or more leaked `ValueError` (or `TypeError`) | the message is built from the stored date and time fields; the `tzinfo` is asked once | `test_contract_hostile.py`: `test_a_naive_message_does_not_ask_the_tzinfo_again`, `test_a_naive_message_shows_the_stored_fields` |
+| c | N1 | `Mock(spec=timedelta)` passed `isinstance` and gave `AttributeError` on all three paths | `timedelta` and `datetime` are recognised by their real type, so an impostor is the documented `TypeError`; also `Mock(spec=datetime)`, which gave the descriptor's `TypeError` text | `test_an_impostor_timedelta_is_a_type_error`, `test_an_impostor_datetime_is_a_type_error` |
+| c | N2 | the private mark leaked into `invalid choice` messages of `-s`, `-z` and `-g` (`'\x00-05:00'`) | those options remove the mark too (`type=_unshield`), so the value is quoted as typed | `test_cli_args.py::test_a_rejected_option_value_is_quoted_as_typed` |
+| e | N37 | `_exact` rewritten as `timedelta(0) + delta` survived: a subclass `__radd__` decided the offset | contract: a subclass overriding `__add__`, `__radd__`, `__neg__` and `__abs__`, as a value, from a `tzinfo` and as the `tzinfo` of a `datetime` | `test_a_timedelta_subclass_arithmetic_is_never_used` |
+| e | N20 | dropping the text after the seconds in `_extended` survived and accepted trailing garbage | contract: text after the seconds, with and without a fraction, exits 2 | `test_cli_at.py::test_text_after_the_seconds_is_refused` |
+| e | H01 | the `--help` defaults and the 3.11 note of `--at` were unpinned | contract: every option default in its help is the one the parser uses, and the help shows the 3.11 note | `test_cli_args.py::test_help_names_the_default_each_option_really_uses` |
+
+The CHANGELOG 1.0.0 section records the behaviour changes: impostor values raise
+`TypeError`, the `tzinfo` is asked once, `__add__` and `__radd__` of a subclass are never
+used, and a rejected `-s`, `-z` or `-g` value is quoted as typed. The GUIDE and the
+`format_offset` docstring say the same.
+
+Mutation check of round 2 on 287b0be, one mutant at a time against the named test file
+(CPython 3.13.2 with tzdata on this PC, quick single-file runs):
+
+| # | Mutation | Result |
+| --- | --- | --- |
+| 1 | N37 `_exact` as `timedelta(0) + delta` | killed: `test_contract_hostile.py::test_a_timedelta_subclass_arithmetic_is_never_used` |
+| 2 | `_exact` as `delta + timedelta(0)` | killed: same test |
+| 3 | N20 text after the seconds dropped | killed: `test_cli_at.py::test_text_after_the_seconds_is_refused` |
+| 4 | N08 help says `(default compact)` | killed: `test_cli_args.py::test_help_names_the_default_each_option_really_uses` |
+| 5 | N09 help says `(default rfc3339)` | killed: same test |
+| 6 | N06 `--zero` default dropped from help | killed: same test |
+| 7 | N07 "Python 3.11 and later" dropped from `--at` help | killed: same test |
+| 8 | A2-F2 naive message by `datetime.isoformat(value)` | killed: `test_contract_hostile.py::test_a_naive_message_does_not_ask_the_tzinfo_again` |
+| 9 | microsecond left out of the naive message | killed: `test_contract_hostile.py::test_a_naive_message_shows_the_stored_fields` |
+| 10 | N1 `isinstance` instead of the real type | killed: `test_contract_hostile.py::test_an_impostor_timedelta_is_a_type_error` |
+| 11 | N2 `-s` keeps the mark | killed: `test_cli_args.py::test_a_rejected_option_value_is_quoted_as_typed` |
+| 12 | N2 `-z` keeps the mark | killed: same test |
+| 13 | N2 `-g` keeps the mark | killed: same test |
+
+Interpreter matrix on 287b0be (PC of Elena, `recurso.sh` turn, fresh clone with the fetched
+sources, wheel e2e included): 3.10.19 443 passed and 1 skipped (`fromisoformat` reads
+offsets only from 3.11); 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded 444
+passed; 3.13.11 free-threaded 434 passed and 2 skipped (no mypy wheel). Gates on 287b0be
+(ruff 0.17.0, mypy 2.4.0, CPython 3.13.2): `ruff format --check .`, `ruff check .`,
+`mypy --strict src` and `mypy --strict src tests` exit 0.
+
+Observations kept for later: the `[1.0.0]` compare link of the CHANGELOG ends at `main`,
+so a `v1.0.0` tag at the merge keeps it exact; the README and pyproject `blob/main` links
+are to be checked after the merge. On 3.11 and later `datetime.fromisoformat` reads
+`2026-07-01T12:00:00:59` as 12:00:00.59, so `--at` (which reads what `fromisoformat` reads
+there) accepts it; 3.10 refuses it. No lens reported it; it is left as the standard
+library behaviour.
+
+Commits of the round: 287b0be (fixes, docs and contracts), then this report.
+
 ### Disputed findings
 
-None in round 1.
+None in round 1. None in round 2.
