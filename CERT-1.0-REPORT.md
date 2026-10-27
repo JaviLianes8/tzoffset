@@ -255,7 +255,12 @@ wheel build (CPython 3.14.2 on the PC of Elena, `recurso.sh` turn):
 Interpreter matrix on 7989756 (PC of Elena, `recurso.sh` turn, fresh clone with the fetched
 sources, wheel e2e included): 3.10.19 419 passed and 1 skipped (`fromisoformat` reads
 offsets only from 3.11); 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded 420
-passed; 3.13.11 free-threaded 410 passed and 2 skipped (no mypy wheel).
+passed; 3.13.11 free-threaded 410 passed and 2 skipped (no mypy wheel). The same matrix on
+f397c50, the head with the two extra contracts and this report: 3.10.19 425 passed and 1
+skipped; 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded 426 passed; 3.13.11
+free-threaded 416 passed and 2 skipped. Gates on the same head (ruff 0.17.3, mypy 2.4.0,
+CPython 3.13.2): `ruff format --check .`, `ruff check .`, `mypy --strict src` and
+`mypy --strict src tests` exit 0.
 
 Commits of the round: 7989756 (fixes, docs and contracts), 5162d8a (contracts for the two
 re-check survivors), then this report.
