@@ -8,7 +8,14 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from tzoffset import Grammar, OffsetError, Style, format_offset, parse_offset
+from tzoffset import (
+    Grammar,
+    OffsetError,
+    Style,
+    format_offset,
+    is_unknown_local_offset,
+    parse_offset,
+)
 
 MINUTES = [timedelta(minutes=m) for m in range(-1439, 1440)]
 SECONDS = [timedelta(seconds=s) for s in range(-86399, 86400, 37)]
@@ -100,3 +107,16 @@ def test_every_zone_offset_formats_and_parses_back() -> None:
     assert max(seen) >= timedelta(hours=14)
     assert min(seen) <= timedelta(hours=-12)
     assert any(offset.seconds % 60 for offset in seen)
+
+
+def test_negative_zero_agrees_with_the_email_date_parser() -> None:
+    # email.utils returns a naive datetime exactly when the zone says the offset is unknown.
+    from email.utils import parsedate_to_datetime
+
+    for offset in [*MINUTES[::7], timedelta(0)]:
+        for zero in ("+", "-"):
+            text = format_offset(offset, style="compact", zero=zero)
+            parsed = parsedate_to_datetime(f"Thu, 01 Jan 2026 00:00:00 {text}")
+            assert is_unknown_local_offset(text) == (parsed.tzinfo is None), text
+            if parsed.tzinfo is not None:
+                assert parse_offset(text).utcoffset(None) == parsed.utcoffset(), text
