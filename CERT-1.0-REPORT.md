@@ -20,8 +20,8 @@ Progress:
 - [x] QA lenses round 2: 7 findings fixed (287b0be); see QA lenses
 - [x] 2026-11-01 QA fix round 1 on 0b3d648: 10 findings reviewed; A03 completed in fix round 2
 - [x] 2026-11-01 QA fix round 2 on a69965c: A03, E-R2-001 and E-R2-002 fixed; see QA lenses
-- [ ] Five QA lenses report PASS (item 19)
-- [ ] Independent reviewer reports PASS (item 16)
+- [x] Five QA lenses report PASS (item 19); final reports and commits recorded below
+- [x] Independent reviewer reports PASS (item 16); all release-preparation items pass
 - [x] PR #3 and trace guard CLEAN (item 17); merge and publish left to the maintainer
 
 ## Scorecard (author)
@@ -37,16 +37,49 @@ Progress:
 | 7 | Real ground truth | PASS: see Ground truth |
 | 8 | Real e2e from the wheel | PASS: wheel and sdist built, wheel installed in a throwaway venv, used from an empty folder, `tzoffset` and `python -m tzoffset` driven by subprocess; PyPI 0.2.0 upgraded in place on 2026-11-01 |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS: `test_fuzz.py`, `test_oracle.py` |
-| 10 | Supported Pythons | Current fix contracts pass on local CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6; complete current suite on 3.14.6. Historical full matrices retained below; see Interpreters. |
+| 10 | Supported Pythons | PASS: reviewer ran the full suite, wheel e2e and PyPI upgrade on CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6 at 2d2bd8a; see reviewer scorecard. |
 | 11 | README and `twine check` | PASS: `twine check --strict` on both files; absolute links checked by a test |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-11-01 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS: 1.0.0, `Development Status :: 5 - Production/Stable`, Python 3.10 to 3.14, MIT, Homepage, Source, Issues, Documentation, Changelog, no runtime dependencies |
 | 14 | sdist and wheel contents | PASS: see Packaging |
 | 15 | Gates each exit 0 | PASS: see Gates |
-| 16 | Independent reviewer | pending (orchestrator) |
-| 17 | PR and trace guard | PR #3, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | Prior rounds retained below; M28, M34 and M35 are killed by the first fix round's contracts. Round 2 survivors N03 and N23 are killed by the new diagnostic contracts. See the 2026-11-01 QA rounds. |
-| 19 | Five independent QA lenses | Historical rounds and the 2026-11-01 fix round recorded below; final PASS verdicts remain pending |
+| 16 | Independent reviewer | PASS: round 1 at 2d2bd8a, no open findings; scorecard below |
+| 17 | PR and trace guard | PASS for release preparation: PR #3, trace guard CLEAN; merge and publication remain pending with the maintainer |
+| 18 | Contracts bite (mutations) | PASS: original 28 mutations killed; lens e's final 26 defects and the reviewer's 14 mutations all detected. Prior rounds and regression contracts retained below. |
+| 19 | Five independent QA lenses | PASS: a round 3, b round 1, c round 2, d round 1, e round 3; final report paths and exact commits below |
+
+## Reviewer scorecard (item 16)
+
+Round 1, 2026-11-01: **PASS**, no findings, checked commit
+`2d2bd8ab344b02e906c070b8cc8f470bfa1274e1`.
+Report: `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/review-r1/REPORT.md`.
+
+The reviewer passed items 1-16, 18 and 19 and recorded item 17 as pending merge.
+The table records PASS for item 17's release-preparation scope: the open PR and CLEAN
+guard. Merge and publication remain pending with the maintainer and are not claimed
+as completed by this certification.
+
+| # | Item | Final result | Reviewer evidence |
+| --- | --- | --- | --- |
+| 1 | Stable public API | PASS | Seven exports, signatures and defaults pinned; live 0.2.0 upgrade passes; behaviour changes documented. |
+| 2 | Exact public surface | PASS | Complete `__all__` and public namespace contracts pass; documentation uses public imports. |
+| 3 | Runnable public docstrings | PASS | All seven exported-object docstrings, eight source doctest groups and README/GUIDE examples execute. |
+| 4 | Complete typing | PASS | Strict mypy checks pass for src and tests; installed consumers and shipped `py.typed` verified. |
+| 5 | Typed and bounded errors | PASS | Error types, callback boundaries, stored values and omitted input diagnostics verified. |
+| 6 | Public contracts | PASS | 174 contract cases cover every export, values, errors, aliases and both datetime folds. |
+| 7 | Ground truth | PASS | Fresh RFC and IANA downloads match manifests; independent .NET and CPython comparisons pass. |
+| 8 | Installed consumers and upgrade | PASS | Wheel and sdist installed separately; isolated API/CLI consumers and live PyPI 0.2.0 upgrades pass. |
+| 9 | Fuzz and robustness | PASS | All 14 seeded fuzz/property/scaling cases pass, plus the complete integral-second offset domain. |
+| 10 | Supported interpreters | PASS | Full suites: 3.10.22 has 542 passed and one documented oracle skip; 3.11.18, 3.12.16, 3.13.18 and 3.14.6 each have 543 passed. No available free-threaded build. |
+| 11 | README and rendering | PASS | Both archive descriptions render correctly; absolute links and strict twine checks pass. |
+| 12 | Dated changelog | PASS | The 1.0.0 section is dated 2026-11-01 and lists the stable API and behaviour changes. |
+| 13 | Release metadata | PASS | Version 1.0.0, Production/Stable, Python >=3.10, classifiers, MIT, URLs and no runtime dependencies verified. |
+| 14 | Archive contents | PASS | Every member, LICENSE, source parity and wheel RECORD hashes checked; no fetched sources or scratch content shipped. |
+| 15 | Quality gates | PASS | Format, lint, strict source typing and pytest each exit 0; strict source-and-tests typing also passes. |
+| 16 | Independent review | PASS | Round 1 executed the certification checks at the pinned commit and found no open issue. |
+| 17 | PR and release preparation | PASS | PR #3 is open from `release/1.0.0` to `main`; guard CLEAN. Reviewer reserved merge and publication for the maintainer. |
+| 18 | Mutation strength | PASS | All 14 independently injected defects fail tests; clean and restored baselines pass. |
+| 19 | Five QA lenses | PASS | All five final reports and their execution evidence corroborated at the supplied commits. |
 
 ## API review (item 1)
 
@@ -245,8 +278,8 @@ console command's output and run `python -m tzoffset --version` after the upgrad
 The upgrade test passes again after the current QA fixes. The 28-mutation author round
 and the 13-mutation check after historical round 2 are retained as earlier evidence;
 this fix round rechecked the three new reported survivors on the changed runtime source.
-No final PASS verdict from any lens or independent reviewer was recorded, so none is
-claimed here. Their final checks, merge and publication remain separate stages.
+The final PASS verdicts from all five QA lenses and the independent reviewer are now
+recorded below and in the reviewer scorecard. Merge and publication remain pending.
 
 ## PR
 
@@ -255,11 +288,32 @@ the trace guard reports CLEAN on it. Merge and publish are left to the maintaine
 
 ## QA lenses (item 19)
 
+### Final verdicts, 2026-11-01
+
+All five lenses report **PASS**, with no open findings. Round counts refer to the
+2026-11-01 certification sequence. Each verdict applies to its stated commit; the
+reviewer accepted the earlier b, c and d evidence and checked the complete final
+suite at `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1`.
+
+| Lens | Rounds | Final verdict | Report path | Commit |
+| --- | --- | --- | --- | --- |
+| a: API and docs | 3 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-a-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
+| b: correctness and ground truth | 1 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-b-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
+| c: adversarial and robustness | 2 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-c-r2/REPORT.md` | `a69965cf049df12e867be47948b24df43b033a6a` |
+| d: packaging and real e2e | 1 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-d-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
+| e: contract strength | 3 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-e-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
+
+Lens a passed five interpreter regression runs and 30 new probes. Lens b passed 66
+independent checks. Lens c passed 21 regressions and 40 bounded probes. Lens d passed
+packaging, external-consumer and upgrade checks. Lens e detected both prior regressions
+and all 24 new mutations, with no survivor. The reviewer verified the corrected check
+setup in lenses c and d and found no outstanding package finding.
+
 ### 2026-11-01 review of a69965c: fix round 2
 
 Lenses a and e reported three findings against
 `a69965cf049df12e867be47948b24df43b033a6a`. All three are fixed; none is disputed.
-Final lens re-verification remains a separate stage.
+Final lens re-verification passed in the final verdicts above.
 
 | Lens | Finding | Change | Evidence |
 | --- | --- | --- | --- |
@@ -308,7 +362,7 @@ Fix commit: `2d6445e911c8a43e5711cf87f7ffaff95912f714`,
 Lenses a, c and e reported 10 findings against
 `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee`. Changes for all ten were recorded; A03
 remained open on re-check and is completed in fix round 2 above. None is disputed.
-Final lens re-verification remains a separate stage. Earlier rounds below are historical
+Final lens re-verification passed in the final verdicts above. Earlier rounds below are historical
 and retain their original messages and test names, which this round supersedes.
 
 | Lens | Finding | Change | Evidence |
