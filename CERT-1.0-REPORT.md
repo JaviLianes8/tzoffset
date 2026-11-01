@@ -307,7 +307,8 @@ and 3.14.6. Every pytest invocation used a 300-second timeout and scratch basete
 Scratch evidence: `fix-r1/baseline-corrected.log`, `M28.log`, `M34.log`, `M35.log`, their
 `-fixed.log` counterparts, `full.log` and `matrix-*.log`.
 
-Fix commit: this commit, `fix qa findings in validation diagnostics and contracts`.
+Fix commit: `c920c90ccf93d5e1a341545168101fe020c1c066`,
+`fix qa findings in validation diagnostics and contracts`.
 
 ### Round 1
 
