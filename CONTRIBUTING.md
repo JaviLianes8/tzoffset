@@ -17,7 +17,8 @@ pip install -r requirements-dev.txt
   absent); the command line tests of `--zone` without `--at` read the real clock, in
   zones whose offset has not changed in decades; and the wheel test (`TZOFFSET_E2E=1`)
   builds the package, which downloads the build backend, and installs it into a new
-  virtual environment. Nothing else uses the network.
+  virtual environment. The upgrade test (`TZOFFSET_E2E_PYPI=1`) also downloads PyPI
+  0.2.0 and upgrades it to the built wheel. Nothing else uses the network.
 - Run `scripts/check.ps1` (format, lint, types, tests) and make sure it passes.
 - One logical change per commit, imperative subject line.
 

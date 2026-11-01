@@ -3,7 +3,7 @@
 # The tests check each file against the size and sha256 below before reading it.
 # Revision: RFC 3339 (July 2002), RFC 5322 (October 2008), RFC 9557 (April 2024),
 #   tz database release 2026e (the latest release on 2026-10-18)
-# Fetched and checked: 2026-10-18; fetched again on 2026-10-27 with identical sha256 (2026e still the latest)
+# Fetched and checked: 2026-10-18; checked again 2026-10-27 and 2026-11-01 with identical sha256
 # Licence: RFCs under the IETF Trust Legal Provisions (https://trustee.ietf.org/license-info);
 #   tz database in the public domain (see the LICENSE file inside the tarball)
 # sha256  size  name  url

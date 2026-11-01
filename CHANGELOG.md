@@ -6,10 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-10-26
+## [1.0.0] - 2026-11-01
 
-The first release on PyPI (0.1.0 and 0.2.0 were never uploaded). The public API is stable
-from here on and follows Semantic Versioning: `parse_offset`, `is_unknown_local_offset`,
+The public API is stable from here on and follows Semantic Versioning:
+`parse_offset`, `is_unknown_local_offset`,
 `format_offset`, `OffsetError`, `Grammar`, `Style` and `Zero`, with the names, signatures,
 defaults and accepted values of 0.2.0.
 
@@ -21,6 +21,8 @@ defaults and accepted values of 0.2.0.
   zone offsets of the tz database 2026e, recorded `java.time.ZoneOffset` output,
   `rfc3339-validator`, `python-dateutil` and the standard library (`strptime`, `strftime`,
   `isoformat`, `fromisoformat`, `email.utils`, `zoneinfo`), plus seeded fuzz tests.
+- An installed-wheel upgrade test from PyPI 0.2.0, comparing the stable API and command
+  line before and after the upgrade in the same environment.
 
 ### Changed
 
@@ -56,6 +58,8 @@ defaults and accepted values of 0.2.0.
   and a leap second (second 60, read as 59) are read on every Python, so every RFC 3339
   timestamp works on 3.10 too; text it cannot read gives `cannot read --at as a date and
   time` instead of calling it not ISO 8601. `--help` shows the default style and grammar.
+- The release script checks whether version 1.0.0 exists on PyPI, allowing an upgrade
+  from an earlier release under the same package name.
 
 ## [0.2.0] - 2026-10-13
 

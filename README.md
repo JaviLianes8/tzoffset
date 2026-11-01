@@ -177,6 +177,8 @@ repository; their tests skip without them). `python scripts/java_oracle.py` rege
 the recorded `java.time.ZoneOffset` output with a JDK. `pip install -e .[dev]` installs the
 tools and the reference parsers, `scripts/check.ps1` runs format, lint, types and tests,
 and `TZOFFSET_E2E=1` also builds the wheel and tests the installed package and its command.
+`TZOFFSET_E2E_PYPI=1` tests upgrading the live PyPI 0.2.0 release to the built wheel in
+the same environment and compares the stable API and command line before and after.
 
 ## License
 

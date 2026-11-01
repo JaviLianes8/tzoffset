@@ -1,9 +1,10 @@
 # tzoffset 1.0.0 certification report
 
-The 1.0.0 certification bar (19 items) applied to tzoffset. Nothing has been published on
-PyPI under this name (`https://pypi.org/pypi/tzoffset/json` answered 404 on 2026-10-27), so
-1.0.0 is the first release there and there is no installed base to upgrade; every change
-against the `main` branch (0.2.0, af44df6) is still listed in the CHANGELOG.
+The 1.0.0 certification bar (19 items) applied to tzoffset. On 2026-11-01,
+https://pypi.org/pypi/tzoffset/json returned HTTP 200 with release 0.2.0. Its wheel's
+package files match `main` (af44df6), ignoring line endings. The in-place upgrade to
+1.0.0 passes; every behaviour change is listed in the CHANGELOG. Earlier runs below
+are historical evidence; the current preparation results are dated 2026-11-01.
 
 Progress:
 - [x] Branch `release/1.0.0` created from `main` (af44df6, 0.2.0)
@@ -14,6 +15,7 @@ Progress:
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e, every Python on this PC (items 8, 10, 13, 14)
 - [x] Gates (item 15)
+- [x] 2026-11-01: live PyPI upgrade, local interpreter inventory and refreshed source checks
 - [x] QA lenses round 1: 23 findings fixed (7989756, 5162d8a); see QA lenses
 - [x] QA lenses round 2: 7 findings fixed (287b0be); see QA lenses
 - [ ] Five QA lenses report PASS (item 19)
@@ -26,23 +28,23 @@ Progress:
 | --- | --- | --- |
 | 1 | Public API reviewed for stability | PASS: 7 names; names, signatures, defaults and accepted values kept from 0.2.0 and pinned by `test_contract_api.py`; error type changes listed in CHANGELOG |
 | 2 | `__all__` exact, no private imports in docs | PASS: `test_contract.py` checks `__all__` and `dir()`; README and GUIDE import only from `tzoffset` |
-| 3 | Docstrings with runnable examples, doctests | PASS: 8 doctest items (module, 3 functions, `OffsetError`, 3 aliases); README (4 blocks) and GUIDE (3 blocks) run as tests |
+| 3 | Docstrings with runnable examples, doctests | PASS: 8 doctest items (module, 3 functions, `OffsetError`, 3 aliases); README (4 blocks) and GUIDE (4 blocks) run as tests; alias examples are in `__test__` to avoid changing shared `Literal` objects |
 | 4 | Typed end to end | PASS: `mypy --strict src tests`, `py.typed` shipped, `Literal` aliases, a consumer snippet type-checked in `test_typing.py`; no `Any` in the public API |
 | 5 | Typed, documented, bounded errors | PASS: `OffsetError` (a `ValueError`), `TypeError` for wrong types; messages quote at most 40 characters; table in GUIDE |
 | 6 | Contract tests of every public name | PASS: `test_contract.py`, `test_contract_api.py` (signatures, result types, error types, message bounds) |
 | 7 | Real ground truth | PASS: see Ground truth |
-| 8 | Real e2e from the wheel | PASS: wheel and sdist built, wheel installed in a throwaway venv, used from an empty folder, `tzoffset` and `python -m tzoffset` driven by subprocess; no PyPI release exists to upgrade from |
+| 8 | Real e2e from the wheel | PASS: wheel and sdist built, wheel installed in a throwaway venv, used from an empty folder, `tzoffset` and `python -m tzoffset` driven by subprocess; PyPI 0.2.0 upgraded in place on 2026-11-01 |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS: `test_fuzz.py`, `test_oracle.py` |
-| 10 | Supported Pythons | PASS: 3.10 to 3.14 and both free-threaded builds; see Interpreters |
+| 10 | Supported Pythons | PASS: CPython 3.14.6 is the only working interpreter on this laptop; prior 3.10 to 3.14 and free-threaded results retained below; see Interpreters |
 | 11 | README and `twine check` | PASS: `twine check --strict` on both files; absolute links checked by a test |
-| 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-26 |
+| 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-11-01 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS: 1.0.0, `Development Status :: 5 - Production/Stable`, Python 3.10 to 3.14, MIT, Homepage, Source, Issues, Documentation, Changelog, no runtime dependencies |
 | 14 | sdist and wheel contents | PASS: see Packaging |
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 16 | Independent reviewer | pending (orchestrator) |
 | 17 | PR and trace guard | PR #3, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | PASS: author round 28 of 28 killed |
-| 19 | Five independent QA lenses | round 1 fixed (see QA lenses); re-verification by the lenses pending |
+| 18 | Contracts bite (mutations) | PASS: author round 28 of 28 killed; 13 further mutations killed after round 2 fixes; no runtime code changed since those runs |
+| 19 | Five independent QA lenses | rounds 1 and 2 fixed (see QA lenses); final PASS verdicts remain pending |
 
 ## API review (item 1)
 
@@ -66,7 +68,7 @@ without breaking calls. Fixed before freezing it:
 
 Fetched sources, not committed, checked by size and SHA-256 against
 `tests/vectors/sources/MANIFEST.txt` before every use (fetched 2026-10-18, fetched again on
-2026-10-27 with identical hashes; tzdata 2026e still the latest release that day):
+2026-10-27 and 2026-11-01 with identical hashes; 2026e is the pinned tzdata release):
 
 | Source | URL | Used for |
 | --- | --- | --- |
@@ -75,7 +77,7 @@ Fetched sources, not committed, checked by size and SHA-256 against
 | RFC 9557 | https://www.rfc-editor.org/rfc/rfc9557.txt | section 2: `Z` equals `-00:00`, no `-00:00` in ISO 8601; the Europe/Paris and New York examples through `zoneinfo` |
 | tz database 2026e | https://data.iana.org/time-zones/releases/tzdata2026e.tar.gz | all 538 distinct standard offsets in the Zone lines round-trip in every style; extremes `-15:56:08` (Asia/Manila) and `15:13:42` (America/Metlakatla) |
 
-Reference implementations run in this session:
+Reference implementations (dates distinguish the original run from the current checks):
 
 - `java.time.ZoneOffset`, OpenJDK 21.0.8 (Temurin) on this PC, 2026-10-27:
   `scripts/oracle/ZoneOffsetOracle.java` through `scripts/java_oracle.py`, output recorded
@@ -83,12 +85,12 @@ Reference implementations run in this session:
   Parsing agrees except for four listed differences (one-digit hours, lower-case `z`,
   whitespace, magnitudes past 18 hours); the colon, compact, short and `Z` spellings agree
   on every offset.
-- `rfc3339-validator` 0.1.4: the `rfc3339` grammar accepts exactly what it accepts on 6,814
+- `rfc3339-validator` 0.1.4, rerun 2026-11-01: the `rfc3339` grammar accepts exactly what it accepts on 6,814
   candidates, plus the lower-case `z` that RFC 3339 section 5.6 allows.
-- `python-dateutil` 3.0.0 `isoparser().parse_tzstr`: every offset the `iso8601` grammar
+- `python-dateutil` 3.0.0 `isoparser().parse_tzstr`, rerun 2026-11-01: every offset the `iso8601` grammar
   accepts reads to the same value; the only texts dateutil accepts beyond it are `-00`,
   `-0000` and `-00:00`, which RFC 9557 excludes from ISO 8601.
-- Standard library: `strftime("%z")`, `isoformat()`, `strptime("%z")`, `fromisoformat`
+- Standard library, rerun on CPython 3.14.6 on 2026-11-01: `strftime("%z")`, `isoformat()`, `strptime("%z")`, `fromisoformat`
   (60,000 seeded strings), `email.utils.parsedate_to_datetime` (`-0000` gives a naive
   datetime exactly when `is_unknown_local_offset` is true), `zoneinfo` over every zone from
   1800 to 2049.
@@ -139,7 +141,15 @@ in 58a5244 for Python 3.10.
 
 ## Interpreters (item 10)
 
-Interpreters installed on this PC: CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.13.11
+On 2026-11-01, `py -0p` and PATH were checked and each listed executable was probed.
+Only `C:/Python314/python.exe` exists and runs: CPython 3.14.6, 64-bit, GIL enabled.
+Its full suite, both wheel e2e tests and live PyPI upgrade pass: **445 passed, no skips**.
+The other launcher entries (3.10, 3.11, 3.12, 3.13 and free-threaded 3.14) point at
+removed installations, so those versions could not be rerun on this laptop. No remote
+machine was used for the current checks. The earlier matrix remains evidence for the
+unchanged runtime source, not a claim that those interpreters are installed here today.
+
+Historical interpreter inventory: CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.13.11
 free-threaded, 3.14.2 and 3.14.2 free-threaded (3.9 and below are outside
 `requires-python`). This PC grants no heavy turn while it has under 10 GB of free memory,
 so the matrix ran through `recurso.sh` on the PC of Elena with the same versions installed
@@ -162,7 +172,18 @@ Fixed in 58a5244 (exit status 1, quiet) with a test that does not depend on the 
 
 ## Packaging (item 14)
 
-Built from a fresh clone of fc94c9d with `python -m build` (CPython 3.14, hatchling) and
+Rebuilt on 2026-11-01 with CPython 3.14.6 and hatchling 1.33.0: `python -m build`
+created the sdist and built the wheel from that sdist; `twine check --strict` passed for
+both. Archive members and metadata were inspected again: LICENSE and `py.typed` present,
+no runtime dependencies, no downloaded RFCs or tzdata archive, caches or process reports.
+The sdist includes the new opt-in upgrade test. The release script's read-only preflight
+now checks the specific 1.0.0 endpoint instead of refusing the existing package name;
+its syntax and HTTP 404 path were checked without running any upload code.
+The sdist was extracted in scratch, its `src` directory moved out of the import path,
+and its tests run against the installed wheel with the fetched sources and dev dependencies:
+**435 passed, 2 skipped** (the two opt-in builds already run above), 8.34 seconds.
+
+Historical build from a fresh clone of fc94c9d with `python -m build` (CPython 3.14, hatchling) and
 checked with `twine check --strict`: both PASSED.
 
 - Wheel `tzoffset-1.0.0-py3-none-any.whl`: the nine modules of `tzoffset/`, `py.typed`,
@@ -183,10 +204,36 @@ and asserts the same contents.
 
 ## Gates (item 15)
 
-On 58a5244, ruff 0.17.3 and mypy 2.4.0 in a CPython 3.13.2 venv on this PC:
+On 2026-11-01, CPython 3.14.6, ruff 0.17.3, mypy 2.4.1, pytest 9.2.0 and
+pytest-timeout 2.4.0: `ruff format --check .` (40 files), `ruff check .`,
+`mypy --strict src` (9 files) and `mypy --strict src tests` (32 files) each exit 0.
+The full suite in a scratch copy of the working tree, with sources fetched anew,
+`TZOFFSET_E2E=1` and `TZOFFSET_E2E_PYPI=1`: **445 passed, no skips**, 35.36 seconds.
+Every test has a 300-second timeout; build environments, downloads and test temporaries
+were under the dedicated scratch directory.
+
+Historical gates on 58a5244, ruff 0.17.3 and mypy 2.4.0 in a CPython 3.13.2 venv:
 `ruff format --check .` exit 0 (35 files), `ruff check .` exit 0, `mypy --strict src` exit 0
 (9 files), `mypy --strict src tests` exit 0 (27 files). `pytest` exit 0 on every interpreter
 above; the configured `testpaths` include `src`, so the 8 doctest items run with it.
+
+## PyPI upgrade (2026-11-01, item 8)
+
+The live 0.2.0 wheel has SHA-256
+`ae6d947c97f72188865bb0fb6eef99c900baf9077bbba6936ada41970da53bfe`.
+Its package files match `main`; the PyPI metadata endpoint is
+https://pypi.org/pypi/tzoffset/json. `test_upgrade.py` installs 0.2.0 from the public
+PyPI index in a new venv, then upgrades that same environment to the built 1.0.0 wheel.
+Before and after, isolated consumers verify versions, signatures, the seven exports and
+literal options, and compare 6,884 offsets in all nine style/zero combinations plus
+6,008 text inputs under all three grammars (seed 20261101). They also compare the installed
+console command's output and run `python -m tzoffset --version` after the upgrade.
+
+The interrupted documentation changes and upgrade test were retained and completed.
+The 28-mutation author round and the 13-mutation check after round 2 remain applicable:
+the runtime source is unchanged from 287b0be. Earlier QA findings and fixes remain below;
+no final PASS verdict from any lens or independent reviewer was recorded, so none is
+claimed here. Their final checks, merge and publication remain separate stages.
 
 ## PR
 
