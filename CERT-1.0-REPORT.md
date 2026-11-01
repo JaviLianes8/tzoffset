@@ -52,7 +52,7 @@ Progress:
 
 Round 1, 2026-11-01: **PASS**, no findings, checked commit
 `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1`.
-Report: `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/review-r1/REPORT.md`.
+Report: `tzoffset-cert/review-r1/REPORT.md`.
 
 The reviewer passed items 1-16, 18 and 19 and recorded item 17 as pending merge.
 The table records PASS for item 17's release-preparation scope: the open PR and CLEAN
@@ -297,11 +297,11 @@ suite at `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1`.
 
 | Lens | Rounds | Final verdict | Report path | Commit |
 | --- | --- | --- | --- | --- |
-| a: API and docs | 3 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-a-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
-| b: correctness and ground truth | 1 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-b-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
-| c: adversarial and robustness | 2 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-c-r2/REPORT.md` | `a69965cf049df12e867be47948b24df43b033a6a` |
-| d: packaging and real e2e | 1 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-d-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
-| e: contract strength | 3 | PASS | `C:/lianes8-build/codex-pylib/scratch/tzoffset-cert/lens-e-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
+| a: API and docs | 3 | PASS | `tzoffset-cert/lens-a-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
+| b: correctness and ground truth | 1 | PASS | `tzoffset-cert/lens-b-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
+| c: adversarial and robustness | 2 | PASS | `tzoffset-cert/lens-c-r2/REPORT.md` | `a69965cf049df12e867be47948b24df43b033a6a` |
+| d: packaging and real e2e | 1 | PASS | `tzoffset-cert/lens-d-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
+| e: contract strength | 3 | PASS | `tzoffset-cert/lens-e-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
 
 Lens a passed five interpreter regression runs and 30 new probes. Lens b passed 66
 independent checks. Lens c passed 21 regressions and 40 bounded probes. Lens d passed
