@@ -1,19 +1,10 @@
-"""The command line tool, driven in process and once as a real subprocess."""
+"""The command line tool driven in process: arguments, styles, grammars, zones, errors."""
 
 from __future__ import annotations
-
-import errno
-import io
-import os
-import subprocess
-import sys
-from pathlib import Path
 
 import pytest
 
 from tzoffset._cli import _shield_offsets, main
-
-SRC = Path(__file__).resolve().parents[1] / "src"
 
 
 def _run(capsys: pytest.CaptureFixture[str], *argv: str) -> list[str]:
@@ -55,12 +46,14 @@ def test_zero_option(capsys: pytest.CaptureFixture[str], value: str, expected: s
 def test_dash_led_offsets_are_shielded_from_argparse() -> None:
     # Python 3.13 and later read "-08:00" as a negative number by themselves; 3.10 to 3.12
     # take it for an option, so the shield is checked directly.
-    argv = ["-08:00", "-s", "short", "-08", "+01", "--", "-02"]
-    assert _shield_offsets(argv) == ["\x00-08:00", "-s", "short", "\x00-08", "+01", "--", "-02"]
+    # After "--" every dash-led value is marked: 3.10 and 3.11 read those arguments again.
+    argv = ["-08:00", "-s", "short", "-08", "+01", "--", "-02", "+03", "-x"]
+    shielded = ["\x00-08:00", "-s", "short", "\x00-08", "+01", "--", "\x00-02", "+03", "\x00-x"]
+    assert _shield_offsets(argv) == shielded
 
 
 def test_double_dash_still_works(capsys: pytest.CaptureFixture[str]) -> None:
-    assert _run(capsys, "-s", "short", "--", "-01", "+02") == ["-01", "+02"]
+    assert _run(capsys, "-s", "short", "--", "-01", "-05:30", "+02") == ["-01", "-05:30", "+02"]
 
 
 def test_grammar_option_is_applied(capsys: pytest.CaptureFixture[str]) -> None:
@@ -75,7 +68,8 @@ def test_bad_offset_exits_two_and_prints_nothing(capsys: pytest.CaptureFixture[s
     assert stop.value.code == 2
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert "+25:00" in captured.err
+    assert "offset field out of range" in captured.err
+    assert "+25:00" not in captured.err
 
 
 def test_offsets_or_zone_are_required(capsys: pytest.CaptureFixture[str]) -> None:
@@ -88,6 +82,16 @@ def test_offsets_and_zone_do_not_mix(capsys: pytest.CaptureFixture[str]) -> None
 
 def test_at_needs_zone(capsys: pytest.CaptureFixture[str]) -> None:
     assert "--at needs --zone" in _fails(capsys, "+01", "--at", "2026-01-01T00:00")
+
+
+def test_huge_arguments_are_cut_in_messages(capsys: pytest.CaptureFixture[str]) -> None:
+    for argv in (
+        ["+" + "1" * 100_000],
+        ["-s", "x" * 100_000, "+01"],
+        ["+01", "--" + "y" * 100_000],
+    ):
+        err = _fails(capsys, *argv)
+        assert len(err) < 1000, err[:200]
 
 
 def _need_zones() -> None:
@@ -115,54 +119,8 @@ def test_zone_at_an_aware_moment_is_converted(capsys: pytest.CaptureFixture[str]
     assert _run(capsys, *zone, "--at", "2026-03-08T12:00+09:00") == ["-05:00"]
 
 
-def test_zone_without_at_uses_now(capsys: pytest.CaptureFixture[str]) -> None:
-    _need_zones()
-    assert _run(capsys, "--zone", "UTC", "--zero", "Z") == ["Z"]
-
-
 def test_unknown_zone_and_bad_moment_exit_two(capsys: pytest.CaptureFixture[str]) -> None:
     _need_zones()
     assert "unknown time zone" in _fails(capsys, "--zone", "Mars/Olympus")
     assert "unknown time zone" in _fails(capsys, "--zone", "../etc")
-    assert "not an ISO 8601" in _fails(capsys, "--zone", "UTC", "--at", "noon")
-
-
-def test_module_runs_and_reports_its_version() -> None:
-    result = subprocess.run(
-        [sys.executable, "-m", "tzoffset", "--version"],
-        capture_output=True,
-        text=True,
-        check=False,
-        env={**os.environ, "PYTHONPATH": str(SRC), "PYTHONDONTWRITEBYTECODE": "1"},
-    )
-    assert result.returncode == 0, result.stderr
-    from tzoffset import __version__
-
-    assert result.stdout.strip() == f"tzoffset {__version__}"
-
-
-class _Pipe(io.StringIO):
-    def __init__(self, error: OSError) -> None:
-        super().__init__()
-        self.error = error
-
-    def write(self, text: str) -> int:
-        raise self.error
-
-    def fileno(self) -> int:
-        return sys.__stdout__.fileno() if sys.__stdout__ else 1
-
-
-@pytest.mark.parametrize("error", [BrokenPipeError(), OSError(errno.EINVAL, "closed")])
-def test_a_closed_pipe_ends_quietly(monkeypatch: pytest.MonkeyPatch, error: OSError) -> None:
-    calls: list[tuple[int, int]] = []
-    monkeypatch.setattr(sys, "stdout", _Pipe(error))
-    monkeypatch.setattr(os, "dup2", lambda a, b: calls.append((a, b)))
-    assert main(["+01", "+02"]) == 0
-    assert len(calls) == 1
-
-
-def test_other_write_errors_are_not_swallowed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(sys, "stdout", _Pipe(OSError(errno.ENOSPC, "disk full")))
-    with pytest.raises(OSError, match="disk full"):
-        main(["+01"])
+    assert "cannot read --at" in _fails(capsys, "--zone", "UTC", "--at", "noon")

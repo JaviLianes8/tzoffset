@@ -24,6 +24,7 @@ pytestmark = pytest.mark.skipif(
 PROGRAM = r"""
 import importlib.metadata, importlib.resources
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import tzoffset as t
 
 assert "site-packages" in t.__file__, t.__file__
@@ -40,6 +41,11 @@ assert t.is_unknown_local_offset("-00:00") and not t.is_unknown_local_offset("+0
 assert t.format_offset(timedelta(hours=9), style="short") == "+09"
 assert t.format_offset(timezone.utc, zero="Z") == "Z"
 assert t.format_offset(datetime(2026, 1, 1, tzinfo=timezone(timedelta(hours=-3)))) == "-03:00"
+zone = ZoneInfo("Europe/Madrid")
+for fold, expected in ((0, "+02:00"), (1, "+01:00")):
+    moment = datetime(2026, 10, 25, 2, 30, tzinfo=zone, fold=fold)
+    assert moment.isoformat().endswith(expected)
+    assert t.format_offset(moment) == expected
 for bad, grammar in (("+0530", "rfc3339"), ("-00:00", "iso8601"), ("+24:00", "lenient")):
     try:
         t.parse_offset(bad, grammar=grammar)
@@ -75,14 +81,20 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     (sdist,) = dist.glob("tzoffset-*.tar.gz")
     with tarfile.open(sdist) as archive:
         members = archive.getnames()
-    data = [name for name in members if "/tests/vectors/" in name]
-    assert data == [name for name in data if name.endswith("/MANIFEST.txt")]
+    # Third-party sources stay out; only their manifest and the recorded Java output ship.
+    data = sorted(name.split("/tests/vectors/")[1] for name in members if "/tests/vectors/" in name)
+    assert data == ["java/zoneoffset.txt", "sources/MANIFEST.txt"]
+    assert not [name for name in members if "CERT-1.0" in name or "IMPROVEMENTS" in name]
+    # Every path the sdist exclude list names is really left out (hatchling always ships
+    # .gitignore, so the list does not name it).
+    excluded = [name for name in members if "/.github" in name or name.endswith("/.gitattributes")]
+    assert not excluded, excluded
 
     env_dir = tmp_path / "venv"
     venv.create(env_dir, with_pip=True)
     bindir = env_dir / ("Scripts" if sys.platform == "win32" else "bin")
     python = bindir / "python"
-    _run(python, "-m", "pip", "install", "-q", wheel)
+    _run(python, "-m", "pip", "install", "-q", wheel, "tzdata")
 
     # Run from an empty folder so the source tree cannot shadow the install.
     work = tmp_path / "work"

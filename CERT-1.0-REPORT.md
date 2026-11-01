@@ -1,0 +1,546 @@
+# tzoffset 1.0.0 certification report
+
+The 1.0.0 certification bar (19 items) applied to tzoffset. On 2026-11-01,
+https://pypi.org/pypi/tzoffset/json returned HTTP 200 with release 0.2.0. Its wheel's
+package files match `main` (af44df6), ignoring line endings. The in-place upgrade to
+1.0.0 passes; every behaviour change is listed in the CHANGELOG. Earlier runs below
+are historical evidence; the current preparation results are dated 2026-11-01.
+
+Progress:
+- [x] Branch `release/1.0.0` created from `main` (af44df6, 0.2.0)
+- [x] API review and 1.0.0 changes (item 1)
+- [x] Errors, typing, docstrings and doctests (items 2 to 5)
+- [x] Ground truth: RFCs and tz database fetched live, Java, PyPI package and stdlib oracles (item 7)
+- [x] Contract, fuzz and author mutation round (items 6, 9, 18)
+- [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
+- [x] Packaging, e2e, every Python on this PC (items 8, 10, 13, 14)
+- [x] Gates (item 15)
+- [x] 2026-11-01: live PyPI upgrade, local interpreter inventory and refreshed source checks
+- [x] QA lenses round 1: 23 findings fixed (7989756, 5162d8a); see QA lenses
+- [x] QA lenses round 2: 7 findings fixed (287b0be); see QA lenses
+- [x] 2026-11-01 QA fix round 1 on 0b3d648: 10 findings reviewed; A03 completed in fix round 2
+- [x] 2026-11-01 QA fix round 2 on a69965c: A03, E-R2-001 and E-R2-002 fixed; see QA lenses
+- [x] Five QA lenses report PASS (item 19); final reports and commits recorded below
+- [x] Independent reviewer reports PASS (item 16); all release-preparation items pass
+- [x] PR #3 and trace guard CLEAN (item 17); merge and publish left to the maintainer
+
+## Scorecard (author)
+
+| # | Item | Result |
+| --- | --- | --- |
+| 1 | Public API reviewed for stability | PASS: 7 names; names, signatures, defaults and accepted values kept from 0.2.0 and pinned by `test_contract_api.py`; error type changes listed in CHANGELOG |
+| 2 | `__all__` exact, no private imports in docs | PASS: `test_contract.py` checks `__all__` and `dir()`; README and GUIDE import only from `tzoffset` |
+| 3 | Docstrings with runnable examples, doctests | PASS: all seven public names have runnable per-object docstrings, including independent Literal aliases. Direct docstring execution, all 8 doctest items and README/GUIDE examples pass. Shared typing objects remain unchanged. |
+| 4 | Typed end to end | PASS: `mypy --strict src tests`, `py.typed` shipped, `Literal` aliases, a consumer snippet type-checked in `test_typing.py`; no `Any` in the public API |
+| 5 | Typed, documented, bounded errors | PASS: `OffsetError` (a `ValueError`), `TypeError` for wrong types without class hooks; supplied text omitted from API and CLI diagnostics; stored type names escaped and bounded; table in GUIDE |
+| 6 | Contract tests of every public name | PASS: `test_contract.py`, `test_contract_api.py` (signatures, result types, error types, message bounds) |
+| 7 | Real ground truth | PASS: see Ground truth |
+| 8 | Real e2e from the wheel | PASS: wheel and sdist built, wheel installed in a throwaway venv, used from an empty folder, `tzoffset` and `python -m tzoffset` driven by subprocess; PyPI 0.2.0 upgraded in place on 2026-11-01 |
+| 9 | Seeded fuzz, no crash, hang or blowup | PASS: `test_fuzz.py`, `test_oracle.py` |
+| 10 | Supported Pythons | PASS: reviewer ran the full suite, wheel e2e and PyPI upgrade on CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6 at 2d2bd8a; see reviewer scorecard. |
+| 11 | README and `twine check` | PASS: `twine check --strict` on both files; absolute links checked by a test |
+| 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-11-01 |
+| 13 | pyproject 1.0.0, Production/Stable | PASS: 1.0.0, `Development Status :: 5 - Production/Stable`, Python 3.10 to 3.14, MIT, Homepage, Source, Issues, Documentation, Changelog, no runtime dependencies |
+| 14 | sdist and wheel contents | PASS: see Packaging |
+| 15 | Gates each exit 0 | PASS: see Gates |
+| 16 | Independent reviewer | PASS: round 1 at 2d2bd8a, no open findings; scorecard below |
+| 17 | PR and trace guard | PASS for release preparation: PR #3, trace guard CLEAN; merge and publication remain pending with the maintainer |
+| 18 | Contracts bite (mutations) | PASS: original 28 mutations killed; lens e's final 26 defects and the reviewer's 14 mutations all detected. Prior rounds and regression contracts retained below. |
+| 19 | Five independent QA lenses | PASS: a round 3, b round 1, c round 2, d round 1, e round 3; final report paths and exact commits below |
+
+## Reviewer scorecard (item 16)
+
+Round 1, 2026-11-01: **PASS**, no findings, checked commit
+`2d2bd8ab344b02e906c070b8cc8f470bfa1274e1`.
+Report: `tzoffset-cert/review-r1/REPORT.md`.
+
+The reviewer passed items 1-16, 18 and 19 and recorded item 17 as pending merge.
+The table records PASS for item 17's release-preparation scope: the open PR and CLEAN
+guard. Merge and publication remain pending with the maintainer and are not claimed
+as completed by this certification.
+
+| # | Item | Final result | Reviewer evidence |
+| --- | --- | --- | --- |
+| 1 | Stable public API | PASS | Seven exports, signatures and defaults pinned; live 0.2.0 upgrade passes; behaviour changes documented. |
+| 2 | Exact public surface | PASS | Complete `__all__` and public namespace contracts pass; documentation uses public imports. |
+| 3 | Runnable public docstrings | PASS | All seven exported-object docstrings, eight source doctest groups and README/GUIDE examples execute. |
+| 4 | Complete typing | PASS | Strict mypy checks pass for src and tests; installed consumers and shipped `py.typed` verified. |
+| 5 | Typed and bounded errors | PASS | Error types, callback boundaries, stored values and omitted input diagnostics verified. |
+| 6 | Public contracts | PASS | 174 contract cases cover every export, values, errors, aliases and both datetime folds. |
+| 7 | Ground truth | PASS | Fresh RFC and IANA downloads match manifests; independent .NET and CPython comparisons pass. |
+| 8 | Installed consumers and upgrade | PASS | Wheel and sdist installed separately; isolated API/CLI consumers and live PyPI 0.2.0 upgrades pass. |
+| 9 | Fuzz and robustness | PASS | All 14 seeded fuzz/property/scaling cases pass, plus the complete integral-second offset domain. |
+| 10 | Supported interpreters | PASS | Full suites: 3.10.22 has 542 passed and one documented oracle skip; 3.11.18, 3.12.16, 3.13.18 and 3.14.6 each have 543 passed. No available free-threaded build. |
+| 11 | README and rendering | PASS | Both archive descriptions render correctly; absolute links and strict twine checks pass. |
+| 12 | Dated changelog | PASS | The 1.0.0 section is dated 2026-11-01 and lists the stable API and behaviour changes. |
+| 13 | Release metadata | PASS | Version 1.0.0, Production/Stable, Python >=3.10, classifiers, MIT, URLs and no runtime dependencies verified. |
+| 14 | Archive contents | PASS | Every member, LICENSE, source parity and wheel RECORD hashes checked; no fetched sources or scratch content shipped. |
+| 15 | Quality gates | PASS | Format, lint, strict source typing and pytest each exit 0; strict source-and-tests typing also passes. |
+| 16 | Independent review | PASS | Round 1 executed the certification checks at the pinned commit and found no open issue. |
+| 17 | PR and release preparation | PASS | PR #3 is open from `release/1.0.0` to `main`; guard CLEAN. Reviewer reserved merge and publication for the maintainer. |
+| 18 | Mutation strength | PASS | All 14 independently injected defects fail tests; clean and restored baselines pass. |
+| 19 | Five QA lenses | PASS | All five final reports and their execution evidence corroborated at the supplied commits. |
+
+## API review (item 1)
+
+The surface of 0.2.0 is kept: `parse_offset(text, *, grammar="lenient") -> timezone`,
+`is_unknown_local_offset(text, *, grammar="lenient") -> bool`,
+`format_offset(value, *, style="colon", zero="+") -> str`, `OffsetError(ValueError)` and
+the `Grammar`, `Style` and `Zero` literal aliases. Options are keyword-only, so they can grow
+without breaking calls. Fixed before freezing it:
+
+- A non-`str` `grammar`, `style` or `zero` raised `OffsetError`; it is now always
+  `TypeError`, matching the rule for `text`.
+- A `tzinfo` whose `utcoffset(None)` returned a non-`timedelta` crashed with
+  `AttributeError`; it is now `TypeError`.
+- Messages quoted the whole input (a 1 MB argument gave a 1 MB message) and called the
+  `repr` of the caller's object; they now omit supplied text and bound stored type names.
+- `OffsetError` showed and pickled as `tzoffset._errors.OffsetError`.
+- The command line exited 0 when its reader closed early, read `--zone -05` as an option,
+  and printed a traceback for an `--at` beyond year 9999 in the zone.
+
+## Ground truth (item 7)
+
+Fetched sources, not committed, checked by size and SHA-256 against
+`tests/vectors/sources/MANIFEST.txt` before every use (fetched 2026-10-18, fetched again on
+2026-10-27 and 2026-11-01 with identical hashes; 2026e is the pinned tzdata release):
+
+| Source | URL | Used for |
+| --- | --- | --- |
+| RFC 3339 | https://www.rfc-editor.org/rfc/rfc3339.txt | section 5.6 and Appendix A grammars (accepted sets compared exhaustively), 4.2 and 4.3 sentences, all six 5.8 examples, the Netherlands `+00:20` example |
+| RFC 5322 | https://www.rfc-editor.org/rfc/rfc5322.txt | section 3.3 zone grammar, `+hhmm` arithmetic, `-0000` meaning |
+| RFC 9557 | https://www.rfc-editor.org/rfc/rfc9557.txt | section 2: `Z` equals `-00:00`, no `-00:00` in ISO 8601; the Europe/Paris and New York examples through `zoneinfo` |
+| tz database 2026e | https://data.iana.org/time-zones/releases/tzdata2026e.tar.gz | all 538 distinct standard offsets in the Zone lines round-trip in every style; extremes `-15:56:08` (Asia/Manila) and `15:13:42` (America/Metlakatla) |
+
+Reference implementations (dates distinguish the original run from the current checks):
+
+- `java.time.ZoneOffset`, OpenJDK 21.0.8 (Temurin) on this PC, 2026-10-27:
+  `scripts/oracle/ZoneOffsetOracle.java` through `scripts/java_oracle.py`, output recorded
+  in `tests/vectors/java/zoneoffset.txt` (1,943 parse inputs, 3,475 offsets formatted).
+  Parsing agrees except for four listed differences (one-digit hours, lower-case `z`,
+  whitespace, magnitudes past 18 hours); the colon, compact, short and `Z` spellings agree
+  on every offset.
+- `rfc3339-validator` 0.1.4, rerun 2026-11-01: the `rfc3339` grammar accepts exactly what it accepts on 6,814
+  candidates, plus the lower-case `z` that RFC 3339 section 5.6 allows.
+- `python-dateutil` 3.0.0 `isoparser().parse_tzstr`, rerun 2026-11-01: every offset the `iso8601` grammar
+  accepts reads to the same value; the only texts dateutil accepts beyond it are `-00`,
+  `-0000` and `-00:00`, which RFC 9557 excludes from ISO 8601.
+- Standard library, rerun on CPython 3.14.6 on 2026-11-01: `strftime("%z")`, `isoformat()`, `strptime("%z")`, `fromisoformat`
+  (60,000 seeded strings), `email.utils.parsedate_to_datetime` (`-0000` gives a naive
+  datetime exactly when `is_unknown_local_offset` is true), `zoneinfo` over every zone from
+  1800 to 2049.
+
+Hand-written expectations (grammar tables in `test_grammar.py`, `test_parse.py`,
+`test_format.py`) are labelled by being in those files; the expected sets in
+`test_sources.py` are written from the RFC grammar lines that the same test finds in the
+fetched text.
+
+## Mutation round (item 18)
+
+Each mutation applied alone to a fresh clone of 58a5244 and the whole suite run
+(`pytest -x`, no wheel build); the first failing test is listed.
+
+| # | Mutation | File | Result | First failing test |
+| --- | --- | --- | --- | --- |
+| 1 | hour limit off by one (23 to 24) | `_parse.py` | killed | `tests/test_contract_api.py::test_bad_values_raise_offset_error[<lambda>0]` |
+| 2 | minute limit off by one (59 to 60) | `_parse.py` | killed | `tests/test_contract_api.py::test_bad_values_raise_offset_error[<lambda>2]` |
+| 3 | second limit dropped | `_parse.py` | killed | `tests/test_grammar.py::test_every_grammar_rejects[+05:30:60-lenient]` |
+| 4 | Unicode digits accepted (\d) | `_parse.py` | killed | `tests/test_fuzz.py::test_random_text_parses_or_raises_offset_error[lenient]` |
+| 5 | lower-case z dropped | `_parse.py` | killed | `tests/test_cli_zone.py::test_at_reads_offsets_on_every_python[2026-03-08t07:00z-offset1]` |
+| 6 | iso8601 negative zero allowed | `_parse.py` | killed | `tests/test_cli.py::test_grammar_option_is_applied` |
+| 7 | negative zero not unknown | `_parse.py` | killed | `src/tzoffset/_parse.py::tzoffset._parse.is_unknown_local_offset` |
+| 8 | sign ignored | `_parse.py` | killed | `src/tzoffset/__init__.py::tzoffset` |
+| 9 | Unicode whitespace stripped | `_parse.py` | killed | `tests/test_fuzz.py::test_random_text_parses_or_raises_offset_error[lenient]` |
+| 10 | strict grammar strips spaces | `_parse.py` | killed | `tests/test_docs.py::test_each_example_prints_what_its_comments_say[1]` |
+| 11 | rfc3339 takes compact form | `_parse.py` | killed | `src/tzoffset/_parse.py::tzoffset._parse.parse_offset` |
+| 12 | minutes and seconds swapped | `_format.py` | killed | `src/tzoffset/__init__.py::tzoffset` |
+| 13 | day limit off by one (>= to >) | `_format.py` | killed | `tests/test_contract_api.py::test_bad_values_raise_offset_error[<lambda>3]` |
+| 14 | fraction of a second accepted | `_format.py` | killed | `tests/test_contract_api.py::test_bad_values_raise_offset_error[<lambda>4]` |
+| 15 | short style ignores seconds | `_format.py` | killed | `tests/test_format.py::test_format_short_with_seconds_keeps_every_field` |
+| 16 | compact and colon separators swapped | `_format.py` | killed | `src/tzoffset/__init__.py::tzoffset` |
+| 17 | zero minus spelling ignored | `_format.py` | killed | `tests/test_cli.py::test_zero_option[---00:00]` |
+| 18 | seconds field always written | `_format.py` | killed | `src/tzoffset/__init__.py::tzoffset` |
+| 19 | naive datetime gets wrong error type | `_format.py` | killed | `tests/test_contract_api.py::test_bad_values_raise_offset_error[<lambda>5]` |
+| 20 | wrong value type gets OffsetError | `_format.py` | killed | `tests/test_contract_api.py::test_wrong_argument_types_raise_type_error[<lambda>6]` |
+| 21 | non-str option gets OffsetError | `_checks.py` | killed | `tests/test_contract_api.py::test_wrong_argument_types_raise_type_error[<lambda>0]` |
+| 22 | message quote limit removed | `_checks.py` | killed | `tests/test_cli_zone.py::test_huge_zone_and_at_values_are_cut_in_messages` |
+| 23 | str subclass trusted | `_checks.py` | killed | `tests/test_contract_api.py::test_str_subclasses_are_read_by_their_characters` |
+| 24 | CLI dash offsets not shielded | `_cli.py` | killed | `tests/test_cli.py::test_dash_led_offsets_are_shielded_from_argparse` |
+| 25 | CLI closed pipe gives status 0 | `_cli.py` | killed | `tests/test_cli_output.py::test_a_reader_that_leaves_first_gets_status_one_and_no_noise[argv0]` |
+| 26 | CLI pipe error while parsing gives status 0 | `_cli.py` | killed | `tests/test_cli_output.py::test_a_write_error_while_parsing_is_handled_like_one_while_printing` |
+| 27 | CLI EINVAL not read as a closed pipe | `_cli.py` | killed | `tests/test_cli_output.py::test_a_reader_that_leaves_first_gets_status_one_and_no_noise[argv0]` |
+| 28 | CLI naive --at read as local time | `_cli_zone.py` | killed | `tests/test_cli.py::test_zone_at_a_naive_moment_is_wall_time` |
+
+28 of 28 killed, no survivor. Mutants 26 and 27 cover the closed-pipe handling added
+in 58a5244 for Python 3.10.
+
+## Interpreters (item 10)
+
+For the current QA fixes, 282 focused contracts, CLI checks, documentation tests and
+doctests passed on each of CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6.
+The first four interpreters were already available in the lens a scratch directory;
+the runs were local and sequential. The complete current suite on 3.14.6 passed all
+520 cases, including both opt-in e2e tests. No current free-threaded build was tested.
+
+During preparation of 0b3d648, `py -0p` and PATH were checked and each listed executable was probed.
+Only `C:/Python314/python.exe` exists and runs: CPython 3.14.6, 64-bit, GIL enabled.
+Its full suite, both wheel e2e tests and live PyPI upgrade pass: **445 passed, no skips**.
+The other launcher entries (3.10, 3.11, 3.12, 3.13 and free-threaded 3.14) point at
+removed installations, so those versions could not be rerun on this laptop. No remote
+machine was used for those checks. The earlier matrix remains historical evidence for
+that source revision; it does not cover the current QA fixes.
+
+Historical interpreter inventory: CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.13.11
+free-threaded, 3.14.2 and 3.14.2 free-threaded (3.9 and below are outside
+`requires-python`). This PC grants no heavy turn while it has under 10 GB of free memory,
+so the matrix ran through `recurso.sh` on the PC of Elena with the same versions installed
+by uv in a private folder: full suite, wheel e2e included (`TZOFFSET_E2E=1`), one
+interpreter at a time, on a fresh clone of 58a5244 with the fetched sources copied in.
+
+| Python | Result |
+| --- | --- |
+| 3.10.19 | 366 passed, 1 skipped (`fromisoformat` reads offsets only from 3.11) |
+| 3.11.5 | 367 passed |
+| 3.12.12 | 367 passed |
+| 3.13.2 | 367 passed |
+| 3.13.11 free-threaded | 357 passed, 2 skipped (`test_typing.py`: mypy has a dependency without a free-threaded 3.13 wheel) |
+| 3.14.2 | 367 passed |
+| 3.14.2 free-threaded | 367 passed |
+
+The first run, at 05b9dd8, found a defect on 3.10 only: argparse there lets the write error
+of `--help` or `--version` on a closed pipe escape as a `BrokenPipeError` traceback.
+Fixed in 58a5244 (exit status 1, quiet) with a test that does not depend on the version.
+
+## Packaging (item 14)
+
+The current QA fix suite rebuilt wheel and sdist, checked their contents, installed the
+wheel in a fresh venv, exercised both ambiguous-time folds and upgraded PyPI 0.2.0.
+
+Preparation of 0b3d648 on 2026-11-01 with CPython 3.14.6 and hatchling 1.33.0: `python -m build`
+created the sdist and built the wheel from that sdist; `twine check --strict` passed for
+both. Archive members and metadata were inspected again: LICENSE and `py.typed` present,
+no runtime dependencies, no downloaded RFCs or tzdata archive, caches or process reports.
+The sdist includes the new opt-in upgrade test. The release script's read-only preflight
+now checks the specific 1.0.0 endpoint instead of refusing the existing package name;
+its syntax and HTTP 404 path were checked without running any upload code.
+The sdist was extracted in scratch, its `src` directory moved out of the import path,
+and its tests run against the installed wheel with the fetched sources and dev dependencies:
+**435 passed, 2 skipped** (the two opt-in builds already run above), 8.34 seconds.
+
+Historical build from a fresh clone of fc94c9d with `python -m build` (CPython 3.14, hatchling) and
+checked with `twine check --strict`: both PASSED.
+
+- Wheel `tzoffset-1.0.0-py3-none-any.whl`: the nine modules of `tzoffset/`, `py.typed`,
+  `METADATA`, `WHEEL`, `entry_points.txt` (the `tzoffset` command), `licenses/LICENSE` and
+  `RECORD`. No tests, data or scratch files.
+- sdist `tzoffset-1.0.0.tar.gz`: `README.md`, `GUIDE.md`, `CHANGELOG.md`, `CONTRIBUTING.md`,
+  `LICENSE`, `pyproject.toml`, `requirements-dev.txt`, `.gitignore`, `scripts/`, `src/` and
+  `tests/`. Of `tests/vectors/` it holds only `sources/MANIFEST.txt` (URLs and hashes, no
+  third-party text) and `java/zoneoffset.txt` (output of this project's own Java program);
+  the fetched RFCs and the tz database tarball, `IMPROVEMENTS-round.md` and this report are
+  left out, which `test_e2e_wheel.py` asserts.
+- `METADATA`: version 1.0.0, `License-Expression: MIT`, `Requires-Python: >=3.10`, no
+  `Requires-Dist` outside the `dev` extra, Production/Stable and Python 3.10 to 3.14
+  classifiers, the README as the long description.
+
+`test_e2e_wheel.py` builds both files again on every interpreter of the matrix at 58a5244
+and asserts the same contents.
+
+## Gates (item 15)
+
+On 2026-11-01, CPython 3.14.6, ruff 0.17.0, mypy 2.4.0, pytest 9.2.0 and
+pytest-timeout 2.4.0: `ruff format --check .` (44 files), `ruff check .`,
+`mypy --strict src` (9 files) and `mypy --strict src tests` (36 files) each exit 0.
+The full suite in a scratch copy of the working tree, with sources fetched anew,
+`TZOFFSET_E2E=1` and `TZOFFSET_E2E_PYPI=1`: **520 passed, no skips**, 43.88 seconds.
+Every test has a 300-second timeout; build environments, downloads and test temporaries
+were under the dedicated scratch directory.
+The repository-local gate also exits 0: **505 passed, 15 skipped** (13 fetched-source
+cases and the two opt-in e2e tests, all included in the complete scratch run).
+
+Historical gates on 58a5244, ruff 0.17.3 and mypy 2.4.0 in a CPython 3.13.2 venv:
+`ruff format --check .` exit 0 (35 files), `ruff check .` exit 0, `mypy --strict src` exit 0
+(9 files), `mypy --strict src tests` exit 0 (27 files). `pytest` exit 0 on every interpreter
+above; the configured `testpaths` include `src`, so the 8 doctest items run with it.
+
+## PyPI upgrade (2026-11-01, item 8)
+
+The live 0.2.0 wheel has SHA-256
+`ae6d947c97f72188865bb0fb6eef99c900baf9077bbba6936ada41970da53bfe`.
+Its package files match `main`; the PyPI metadata endpoint is
+https://pypi.org/pypi/tzoffset/json. `test_upgrade.py` installs 0.2.0 from the public
+PyPI index in a new venv, then upgrades that same environment to the built 1.0.0 wheel.
+Before and after, isolated consumers verify versions, signatures, the seven exports and
+literal options, and compare 6,884 offsets in all nine style/zero combinations plus
+6,008 text inputs under all three grammars (seed 20261101). They also compare the installed
+console command's output and run `python -m tzoffset --version` after the upgrade.
+
+The upgrade test passes again after the current QA fixes. The 28-mutation author round
+and the 13-mutation check after historical round 2 are retained as earlier evidence;
+this fix round rechecked the three new reported survivors on the changed runtime source.
+The final PASS verdicts from all five QA lenses and the independent reviewer are now
+recorded below and in the reviewer scorecard. Merge and publication remain pending.
+
+## PR
+
+PR #3 (https://github.com/JaviLianes8/tzoffset/pull/3) from `release/1.0.0` to `main`;
+the trace guard reports CLEAN on it. Merge and publish are left to the maintainer.
+
+## QA lenses (item 19)
+
+### Final verdicts, 2026-11-01
+
+All five lenses report **PASS**, with no open findings. Round counts refer to the
+2026-11-01 certification sequence. Each verdict applies to its stated commit; the
+reviewer accepted the earlier b, c and d evidence and checked the complete final
+suite at `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1`.
+
+| Lens | Rounds | Final verdict | Report path | Commit |
+| --- | --- | --- | --- | --- |
+| a: API and docs | 3 | PASS | `tzoffset-cert/lens-a-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
+| b: correctness and ground truth | 1 | PASS | `tzoffset-cert/lens-b-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
+| c: adversarial and robustness | 2 | PASS | `tzoffset-cert/lens-c-r2/REPORT.md` | `a69965cf049df12e867be47948b24df43b033a6a` |
+| d: packaging and real e2e | 1 | PASS | `tzoffset-cert/lens-d-r1/REPORT.md` | `0b3d6483f0f0ca12e51bb584443756fcfb3c75ee` |
+| e: contract strength | 3 | PASS | `tzoffset-cert/lens-e-r3/REPORT.md` | `2d2bd8ab344b02e906c070b8cc8f470bfa1274e1` |
+
+Lens a passed five interpreter regression runs and 30 new probes. Lens b passed 66
+independent checks. Lens c passed 21 regressions and 40 bounded probes. Lens d passed
+packaging, external-consumer and upgrade checks. Lens e detected both prior regressions
+and all 24 new mutations, with no survivor. The reviewer verified the corrected check
+setup in lenses c and d and found no outstanding package finding.
+
+### 2026-11-01 review of a69965c: fix round 2
+
+Lenses a and e reported three findings against
+`a69965cf049df12e867be47948b24df43b033a6a`. All three are fixed; none is disputed.
+Final lens re-verification passed in the final verdicts above.
+
+| Lens | Finding | Change | Evidence |
+| --- | --- | --- | --- |
+| a | A03: Grammar, Style and Zero lack runnable docstrings | Copy each Literal alias before attaching its runnable documentation; correct GUIDE, CHANGELOG and item 3; withdraw the earlier exception | `test_contract_aliases.py`: execute every public docstring and check shared-object nonmutation, Literal metadata, equality, hashing, representation, pickling and resolved annotations in a fresh process |
+| e | E-R2-001: N03 leaves printable non-ASCII type names unescaped | Add accented Latin and CJK names across all seven argument positions; require ASCII-only output and the exact escaped suffix | `test_printable_non_ascii_type_names_are_escaped`: 14 cases; N03 fails all 14 |
+| e | E-R2-002: N23 echoes CLI arguments on calendar overflow | Add subprocess contracts at years 1 and 9999, with a distinctive fractional-second canary; require omitted zone and timestamp, status 2 and empty stdout | `test_cli_calendar_overflow_diagnostics_omit_both_arguments`: N23 fails both cases |
+
+The new docstring contracts ran first on the original implementation: **4 failed, 71
+passed** across the three focused files. The failures were the three missing alias
+docstrings and the independent-object contract. Both diagnostic findings concern correct
+runtime behavior with missing regression coverage: their new contracts already pass on
+the original implementation. The exact reported patches were then applied separately in
+scratch, and each produced assertion failures in its new contracts. Neither diagnostic
+implementation needed changing.
+
+The aliases retain their accepted values, Literal origin, equality, hash, representation,
+resolved annotations and pickle equality. Their identity is now separate from cached
+standard-library aliases so they can own documentation without changing another package's
+objects. This documentation-related change is recorded in the CHANGELOG. The runtime
+alias copying and docstrings are exercised on every supported local interpreter.
+
+| Mutation | Contract that fails | Result |
+| --- | --- | --- |
+| N03: replace ascii(type name) with repr(type name) | `test_contract_validation.py::test_printable_non_ascii_type_names_are_escaped` | 14 assertion failures |
+| N23: interpolate zone and timestamp in overflow error | `test_contract_messages.py::test_cli_calendar_overflow_diagnostics_omit_both_arguments` | 2 assertion failures |
+
+Validation: `ruff format --check .`, `ruff check .`, `mypy --strict src` and
+`mypy --strict src tests` all exit 0. Full suite with freshly fetched reference sources
+and both e2e flags: **543 passed, 0 skipped**, including wheel installation and the
+PyPI 0.2.0 upgrade. The full run uses a source snapshot in scratch so downloaded sources,
+builds and temporary files remain there. Focused matrix: **305 passed** on each of
+CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6. Every pytest invocation uses a
+300-second timeout and scratch basetemp. An initial matrix setup omitted the timezone
+database from CLI subprocesses; the rerun supplies its explicit path.
+The worktree's pytest gate also exits 0: **530 passed, 13 skipped** because the fetched
+reference sources are kept only in scratch; all 13 run in the complete suite above.
+
+Scratch evidence: `fix-r2/before.log`, `focused.log`, `N03.log`, `N23.log`, `fetch.log`,
+`full.log` and `matrix-*.log` under the certification scratch directory.
+
+Fix commit: `2d6445e911c8a43e5711cf87f7ffaff95912f714`,
+`add runnable alias docs and close diagnostic contract gaps`.
+
+### 2026-11-01 review of 0b3d648: fix round 1
+
+Lenses a, c and e reported 10 findings against
+`0b3d6483f0f0ca12e51bb584443756fcfb3c75ee`. Changes for all ten were recorded; A03
+remained open on re-check and is completed in fix round 2 above. None is disputed.
+Final lens re-verification passed in the final verdicts above. Earlier rounds below are historical
+and retain their original messages and test names, which this round supersedes.
+
+| Lens | Finding | Change | Evidence |
+| --- | --- | --- | --- |
+| a, c | A01, C-02: wrong types run class hooks or impersonate tzinfo | Real-type validation for every string argument and formatter input; reject fake tzinfo before calling it | `test_contract_validation.py`: all seven argument positions and an impersonating timezone |
+| a | A02: timezone callback sees overridden datetime fields | Copy stored date, time, timezone and fold into an exact datetime before the single callback | `test_contract_datetime.py`: custom timezone observes all stored fields and both folds |
+| a | A03: Literal aliases lack claimed docstrings | Initially corrected CHANGELOG and GUIDE and proposed an exception; superseded by fix round 2 | Existing alias doctests, GUIDE example, alias metadata tests and shared-object nonmutation test |
+| a | A04: dash-prefixed value support overstated | Document dash followed by an ASCII digit before `--`; other dash-prefixed option values require `--zone=VALUE` or `--at=VALUE` | Existing dash-led offset/option tests and CLI validation probes |
+| c | C-01: diagnostics echo credentials | Omit text arguments from library errors; replace argparse syntax errors with a fixed help hint; omit zone names and timestamps | `test_contract_messages.py`: six API positions with short/long canaries, 12 CLI subprocess paths including unknown, ambiguous and attached options |
+| c | C-03: hostile type names escape message limits | Read the built-in stored type-name descriptor, normalize to str, escape controls/non-ASCII and bound the rendered fragment | `test_contract_validation.py`: throwing metaclass, formatting override, huge/control/Unicode names and timezone diagnostics |
+| e | E-R1-001: M28 discards fold | Contracts for both folds of Madrid's repeated hour, using datetime/ZoneInfo as oracle; installed-wheel cases too | M28 killed on the original and fixed code |
+| e | E-R1-002: M34 accepts padded options | Reject leading/trailing ASCII and Unicode whitespace on every grammar, style and zero value | M34 killed on the original and fixed code |
+| e | E-R1-003: M35 calls overridden str conversion | Pin parsing, unknown-offset detection and all options to stored string contents; assert no conversion call | M35 killed on the original and fixed code |
+
+The exception proposed here for item 3 did not satisfy the governing requirement and is
+withdrawn. Fix round 2 above gives `Grammar`, `Style` and `Zero` runnable docstrings on
+independent Literal objects, preserving their typing semantics and leaving shared objects
+untouched. All seven public names now meet the per-object docstring requirement.
+
+The 72 new regression cases were run before changing runtime code: **52 failed, 20
+passed** on the original source, including failures for every reported behaviour bug.
+The final baseline rerun corrected two test-harness cases (an unconstructible surrogate
+type name and a Python 3.14 help spelling). The three contract-strength findings concern
+correct original code: their tests passed until the reported mutations were applied.
+
+| Mutation | New contract that fails | Original source with mutation | Fixed source with mutation |
+| --- | --- | --- | --- |
+| M28: force fold 0 | `test_both_folds_of_an_ambiguous_aware_datetime_keep_their_offset` | fold 1 fails | fold 1 fails, including datetime subclasses |
+| M34: strip option whitespace | `test_padded_option_values_are_rejected` | 14 cases fail | 14 cases fail |
+| M35: use str(value) | string conversion contracts in `test_contract_options.py` | 2 cases fail | 2 cases fail |
+
+Every mutation ran separately in scratch with a fresh interpreter. The original M28
+substitution was applied exactly; on the fixed code it was adapted to force fold 0 on
+the normalized datetime. No mutation was left in the release tree. Tests that pinned
+input echoes were updated to the new confidentiality contract. Closed-pipe tests now
+use ordinary scratch files as output sinks, including subprocesses.
+
+Validation: all four required gates exit 0, as does `mypy --strict src tests`. Full suite
+with freshly fetched reference sources and both e2e flags: **520 passed, 0 skipped**.
+Focused matrix: **282 passed** on each of CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18
+and 3.14.6. Every pytest invocation used a 300-second timeout and scratch basetemp.
+Scratch evidence: `fix-r1/baseline-corrected.log`, `M28.log`, `M34.log`, `M35.log`, their
+`-fixed.log` counterparts, `full.log` and `matrix-*.log`.
+
+Fix commit: `c920c90ccf93d5e1a341545168101fe020c1c066`,
+`fix qa findings in validation diagnostics and contracts`.
+
+### Round 1
+
+Five independent QA lenses reviewed 7dc5b6d: a (API and docs), b (correctness and
+ground truth), c (adversarial), d (packaging and e2e), e (contract strength, own mutation
+round). 23 findings, all fixed; none disputed. Each behaviour bug got a contract test first,
+checked to fail on 7dc5b6d (on 3.10 and 3.11 for the version-bound ones) and to pass after
+the fix.
+
+| Lens | Id | Finding | Fix | Contract |
+| --- | --- | --- | --- | --- |
+| a | A-F1 | importing the package set `__doc__` on typing's shared `Literal` objects | aliases are no longer touched; their docs are `#:` comments, the `_types` docstring, a new GUIDE section and the `__test__` examples | `test_importing_leaves_the_shared_literal_objects_alone`, `test_every_alias_has_a_documented_example` |
+| a, c | A-F2, C-F1 | an aware `datetime` whose `tzinfo` returns a day or more raised a plain `ValueError` | the offset is read from the stored `tzinfo` and range-checked by the library: `OffsetError` | `test_a_datetime_with_an_offset_of_a_day_or_more_is_an_offset_error` |
+| a | A-F3 | "at most 40 characters" was promised for every argument, but a `timedelta` is shown whole | promise reworded in `OffsetError`, README and GUIDE: 40 characters of a text argument; an offset is shown as its exact `timedelta` | `test_offset_messages_show_the_exact_value` |
+| a, b | A-F4, B-F1 | `--at` refused RFC 3339 fractions on 3.10 and called valid text "not ISO 8601" | seconds are respelled before `fromisoformat` (any fraction length, comma mark); GUIDE and `--help` state the forms and that the basic form needs 3.11; new message `cannot read --at as a date and time` | `test_cli_at.py`: RFC 3339 section 5.8 timestamps (also read from the fetched RFC), fractions, `_extended`, basic form per version |
+| a | A-F5 | CONTRIBUTING said tests never touch time, disk or network | reworded to what the suite really reads, the one real-clock test and the e2e build | docs |
+| a | A-F6 | CHANGELOG older entries not in Keep a Changelog form | 0.2.0 and 0.1.0 dated (2026-10-13, 2026-10-12, commit dates), `### Added` in 0.1.0, link references | docs |
+| b | B-F2 | a leap second (second 60) was refused as "not ISO 8601" | second 60 is read as 59 of the same minute (documented in the GUIDE) | `test_rfc3339_examples_are_read_on_every_python`, `test_a_naive_leap_second_is_read_as_second_59` |
+| c | C-F2 | a `datetime` subclass overriding `utcoffset` gave `AttributeError` | the stored `tzinfo` is read through the C-level field; the override is never called | `test_a_datetime_subclass_is_read_by_its_stored_tzinfo`, `test_a_datetime_subclass_cannot_swap_its_tzinfo` |
+| c | C-F3 | `timedelta` subclasses were read through overridable fields | every offset is copied into an exact `timedelta` (`timedelta.__add__`) first | `test_a_timedelta_subclass_is_read_by_its_stored_value` |
+| d | D1 | `tzoffset -- -05:30` refused on 3.10 and 3.11 | dash-led values after `--` are shielded too | `test_every_value_after_a_double_dash_is_an_offset`, updated `test_dash_led_offsets_are_shielded_from_argparse` and `test_double_dash_still_works` |
+| d | D2 | sdist exclude list named `.gitignore`, which hatchling always ships | removed from the list with a comment; the e2e asserts every listed path is left out | `test_installed_wheel_end_to_end` |
+| e | Z06 | `--zone` without `--at` not pinned to the zone | zones with a fixed offset for decades | `test_zone_without_at_is_the_offset_in_that_zone_now` |
+| e | Z12 | the `fold=0` rule was unpinned | Europe/Madrid repeated and skipped 02:30 | `test_a_repeated_or_skipped_wall_time_takes_the_offset_before_the_change` |
+| e | F25, F26 | `timedelta.__repr__(delta)` to `delta!r` survived | the subclass case is now pinned; after the C-F3 fix `delta` is always an exact `timedelta`, so this mutant is equivalent (the mutant that drops the exact copy is killed) | `test_offset_messages_show_the_exact_value`, `test_a_timedelta_subclass_is_read_by_its_stored_value` |
+| e | F27 | `datetime.isoformat(value)` to `value.isoformat()` survived | pinned with a subclass whose `isoformat` is huge | `test_offset_messages_show_the_exact_value` |
+| e | L10, L16, L17 | the 200-character cut of usage messages was unpinned | exact length, `...` ending and the 200/201 boundary | `test_a_long_usage_message_is_cut_to_two_hundred_characters`, `test_the_cut_starts_past_two_hundred_characters` |
+| e | C02 | the 40-character quote boundary was unpinned | 40 and 41 characters | `test_a_text_of_forty_characters_is_quoted_whole` |
+| e | P28 | the `TypeError` message was unpinned and named `offset` for the `text` parameter | it now says `text must be a str, not int`; every option message pinned | `test_type_errors_name_the_parameter` |
+
+Lens c also noted (no finding) that exceptions raised by a caller's own `utcoffset`
+propagate unchanged; that is kept. From the observations of lens a: `--help` now shows the
+defaults of `--style` and `--grammar`; the README links to `blob/main` resolve only after
+the merge, so they are to be checked then.
+
+Mutation re-check of round 1, on 7989756, one mutant at a time, whole suite without the
+wheel build (CPython 3.14.2 on the PC of Elena, `recurso.sh` turn):
+
+| # | Mutation | Result |
+| --- | --- | --- |
+| 1 | Z06 zone without `--at` ignores the zone | killed: `test_cli_at.py::test_zone_without_at_is_the_offset_in_that_zone_now` |
+| 2 | Z12 naive `--at` uses `fold=1` | killed: `test_cli_at.py::test_a_repeated_or_skipped_wall_time_takes_the_offset_before_the_change` |
+| 3 | F25 range message uses `delta!r` | equivalent: `delta` is an exact `timedelta` |
+| 4 | F26 fraction message uses `delta!r` | equivalent: as above |
+| 5 | exact `timedelta` copy dropped | killed: `test_contract_values.py::test_a_timedelta_subclass_is_read_by_its_stored_value` |
+| 6 | F27 naive message uses `value.isoformat()` | killed: `test_contract_values.py::test_offset_messages_show_the_exact_value` |
+| 7 | L10 cut threshold 20,000 | killed: `test_cli_args.py::test_a_long_usage_message_is_cut_to_two_hundred_characters` |
+| 8 | L16 message limit 600 | killed: same test |
+| 9 | L17 cut without `...` | killed: same test |
+| 10 | cut boundary `>` to `>=` | killed: `test_cli_args.py::test_the_cut_starts_past_two_hundred_characters` |
+| 11 | C02 quote boundary `<=` to `<` | killed: `test_contract_values.py::test_a_text_of_forty_characters_is_quoted_whole` |
+| 12 | P28 `TypeError` names `offset` | killed: `test_contract_values.py::test_type_errors_name_the_parameter` |
+| 13 | A-F1 alias `__doc__` set again | killed: `test_contract_values.py::test_importing_leaves_the_shared_literal_objects_alone` |
+| 14 | A-F2 datetime offset read by `value.utcoffset()` | killed: `test_contract_values.py::test_a_datetime_with_an_offset_of_a_day_or_more_is_an_offset_error` |
+| 15 | C-F2 datetime `tzinfo` read by attribute | survived on 7989756; killed from 5162d8a by `test_contract_values.py::test_a_datetime_subclass_cannot_swap_its_tzinfo` |
+| 16 | D1 values after `--` not shielded | killed: `test_cli.py::test_dash_led_offsets_are_shielded_from_argparse` |
+| 17 | B-F2 leap second kept as 60 | killed: `test_cli_at.py::test_rfc3339_examples_are_read_on_every_python` |
+| 18 | B-F1 fraction not padded | killed only on 3.10 on 7989756 (3.11 and later read any fraction); killed on every Python from 5162d8a by `test_cli_at.py::test_seconds_are_spelled_the_way_python_3_10_reads_them` |
+
+Interpreter matrix on 7989756 (PC of Elena, `recurso.sh` turn, fresh clone with the fetched
+sources, wheel e2e included): 3.10.19 419 passed and 1 skipped (`fromisoformat` reads
+offsets only from 3.11); 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded 420
+passed; 3.13.11 free-threaded 410 passed and 2 skipped (no mypy wheel). The same matrix on
+f397c50, the head with the two extra contracts and this report: 3.10.19 425 passed and 1
+skipped; 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded 426 passed; 3.13.11
+free-threaded 416 passed and 2 skipped. Gates on the same head (ruff 0.17.3, mypy 2.4.0,
+CPython 3.13.2): `ruff format --check .`, `ruff check .`, `mypy --strict src` and
+`mypy --strict src tests` exit 0.
+
+Commits of the round: 7989756 (fixes, docs and contracts), 5162d8a (contracts for the two
+re-check survivors), then this report.
+
+### Round 2
+
+Lenses a, c and e re-checked 84b84ea: every round 1 finding they owned is fixed, except
+A-F5, which was only partly fixed (A2-F1 below). They reported 7 new findings, all low and
+all fixed; none disputed. Each behaviour bug got a contract test first, checked to fail on
+84b84ea (CPython 3.10.19 and 3.13.2) and to pass after the fix. Findings N37, N20 and H01
+were missing contracts on correct code: their contracts were checked to kill the mutants
+the lens reported.
+
+| Lens | Id | Finding | Fix | Contract |
+| --- | --- | --- | --- | --- |
+| a | A2-F1 | CONTRIBUTING spoke of one real-clock test; two test functions (three cases) run `--zone` without `--at` | reworded to "the command line tests of `--zone` without `--at`"; the older UTC test is folded into the parametrized one | docs |
+| a | A2-F2 | the naive `datetime` message called `isoformat()`, which asked the `tzinfo` a second time; a `tzinfo` answering `None` and then a day or more leaked `ValueError` (or `TypeError`) | the message is built from the stored date and time fields; the `tzinfo` is asked once | `test_contract_hostile.py`: `test_a_naive_message_does_not_ask_the_tzinfo_again`, `test_a_naive_message_shows_the_stored_fields` |
+| c | N1 | `Mock(spec=timedelta)` passed `isinstance` and gave `AttributeError` on all three paths | `timedelta` and `datetime` are recognised by their real type, so an impostor is the documented `TypeError`; also `Mock(spec=datetime)`, which gave the descriptor's `TypeError` text | `test_an_impostor_timedelta_is_a_type_error`, `test_an_impostor_datetime_is_a_type_error` |
+| c | N2 | the private mark leaked into `invalid choice` messages of `-s`, `-z` and `-g` (`'\x00-05:00'`) | those options remove the mark too (`type=_unshield`), so the value is quoted as typed | `test_cli_args.py::test_a_rejected_option_value_is_quoted_as_typed` |
+| e | N37 | `_exact` rewritten as `timedelta(0) + delta` survived: a subclass `__radd__` decided the offset | contract: a subclass overriding `__add__`, `__radd__`, `__neg__` and `__abs__`, as a value, from a `tzinfo` and as the `tzinfo` of a `datetime` | `test_a_timedelta_subclass_arithmetic_is_never_used` |
+| e | N20 | dropping the text after the seconds in `_extended` survived and accepted trailing garbage | contract: text after the seconds, with and without a fraction, exits 2 | `test_cli_at.py::test_text_after_the_seconds_is_refused` |
+| e | H01 | the `--help` defaults and the 3.11 note of `--at` were unpinned | contract: every option default in its help is the one the parser uses, and the help shows the 3.11 note | `test_cli_args.py::test_help_names_the_default_each_option_really_uses` |
+
+The CHANGELOG 1.0.0 section records the behaviour changes: impostor values raise
+`TypeError`, the `tzinfo` is asked once, `__add__` and `__radd__` of a subclass are never
+used, and a rejected `-s`, `-z` or `-g` value is quoted as typed. The GUIDE and the
+`format_offset` docstring say the same.
+
+Mutation check of round 2 on 287b0be, one mutant at a time against the named test file
+(CPython 3.13.2 with tzdata on this PC, quick single-file runs):
+
+| # | Mutation | Result |
+| --- | --- | --- |
+| 1 | N37 `_exact` as `timedelta(0) + delta` | killed: `test_contract_hostile.py::test_a_timedelta_subclass_arithmetic_is_never_used` |
+| 2 | `_exact` as `delta + timedelta(0)` | killed: same test |
+| 3 | N20 text after the seconds dropped | killed: `test_cli_at.py::test_text_after_the_seconds_is_refused` |
+| 4 | N08 help says `(default compact)` | killed: `test_cli_args.py::test_help_names_the_default_each_option_really_uses` |
+| 5 | N09 help says `(default rfc3339)` | killed: same test |
+| 6 | N06 `--zero` default dropped from help | killed: same test |
+| 7 | N07 "Python 3.11 and later" dropped from `--at` help | killed: same test |
+| 8 | A2-F2 naive message by `datetime.isoformat(value)` | killed: `test_contract_hostile.py::test_a_naive_message_does_not_ask_the_tzinfo_again` |
+| 9 | microsecond left out of the naive message | killed: `test_contract_hostile.py::test_a_naive_message_shows_the_stored_fields` |
+| 10 | N1 `isinstance` instead of the real type | killed: `test_contract_hostile.py::test_an_impostor_timedelta_is_a_type_error` |
+| 11 | N2 `-s` keeps the mark | killed: `test_cli_args.py::test_a_rejected_option_value_is_quoted_as_typed` |
+| 12 | N2 `-z` keeps the mark | killed: same test |
+| 13 | N2 `-g` keeps the mark | killed: same test |
+
+Interpreter matrix on 287b0be (PC of Elena, `recurso.sh` turn, fresh clone with the fetched
+sources, wheel e2e included): 3.10.19 443 passed and 1 skipped (`fromisoformat` reads
+offsets only from 3.11); 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded 444
+passed; 3.13.11 free-threaded 434 passed and 2 skipped (no mypy wheel). Gates on 287b0be
+(ruff 0.17.0, mypy 2.4.0, CPython 3.13.2): `ruff format --check .`, `ruff check .`,
+`mypy --strict src` and `mypy --strict src tests` exit 0.
+
+Observations kept for later: the `[1.0.0]` compare link of the CHANGELOG ends at `main`,
+so a `v1.0.0` tag at the merge keeps it exact; the README and pyproject `blob/main` links
+are to be checked after the merge. On 3.11 and later `datetime.fromisoformat` reads
+`2026-07-01T12:00:00:59` as 12:00:00.59, so `--at` (which reads what `fromisoformat` reads
+there) accepts it; 3.10 refuses it. No lens reported it; it is left as the standard
+library behaviour.
+
+Commits of the round: 287b0be (fixes, docs and contracts), then this report.
+
+### Disputed findings
+
+None in historical rounds 1 and 2. None in the 2026-11-01 review of 0b3d648, fix round 1.
+None in the 2026-11-01 review of a69965c, fix round 2.

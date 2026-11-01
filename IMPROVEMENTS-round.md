@@ -13,6 +13,7 @@ Progress:
 - [x] Docs: README, CHANGELOG, docstrings, packaging metadata
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [x] Independent review findings fixed with regression tests
+- [x] 2026-11-01 QA round 1 findings: type validation, diagnostics, datetime values, docs and contracts
 - [x] Pull request opened, guard clean
 
 ## Starting point

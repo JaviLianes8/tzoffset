@@ -84,8 +84,8 @@ def test_every_grammar_rejects(grammar: Grammar, text: str) -> None:
         parse_offset(text, grammar=grammar)
 
 
-def test_error_names_the_grammar_and_the_text() -> None:
-    with pytest.raises(OffsetError, match=r"rfc3339 .*'\+0530'"):
+def test_error_names_the_grammar_without_the_text() -> None:
+    with pytest.raises(OffsetError, match=r"not a valid rfc3339 UTC offset$"):
         parse_offset("+0530", grammar="rfc3339")
 
 
