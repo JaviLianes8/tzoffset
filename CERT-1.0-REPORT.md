@@ -18,6 +18,7 @@ Progress:
 - [x] 2026-11-01: live PyPI upgrade, local interpreter inventory and refreshed source checks
 - [x] QA lenses round 1: 23 findings fixed (7989756, 5162d8a); see QA lenses
 - [x] QA lenses round 2: 7 findings fixed (287b0be); see QA lenses
+- [x] 2026-11-01 QA fix round 1 on 0b3d648: all 10 findings addressed; see QA lenses
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 - [x] PR #3 and trace guard CLEAN (item 17); merge and publish left to the maintainer
@@ -28,14 +29,14 @@ Progress:
 | --- | --- | --- |
 | 1 | Public API reviewed for stability | PASS: 7 names; names, signatures, defaults and accepted values kept from 0.2.0 and pinned by `test_contract_api.py`; error type changes listed in CHANGELOG |
 | 2 | `__all__` exact, no private imports in docs | PASS: `test_contract.py` checks `__all__` and `dir()`; README and GUIDE import only from `tzoffset` |
-| 3 | Docstrings with runnable examples, doctests | PASS: 8 doctest items (module, 3 functions, `OffsetError`, 3 aliases); README (4 blocks) and GUIDE (4 blocks) run as tests; alias examples are in `__test__` to avoid changing shared `Literal` objects |
+| 3 | Docstrings with runnable examples, doctests | Documented exception for shared Literal aliases: runnable GUIDE and named doctest examples replace per-object docstrings. Functions and `OffsetError` have runnable docstrings; all 8 doctest items and README/GUIDE examples pass. See A03 below. |
 | 4 | Typed end to end | PASS: `mypy --strict src tests`, `py.typed` shipped, `Literal` aliases, a consumer snippet type-checked in `test_typing.py`; no `Any` in the public API |
-| 5 | Typed, documented, bounded errors | PASS: `OffsetError` (a `ValueError`), `TypeError` for wrong types; messages quote at most 40 characters; table in GUIDE |
+| 5 | Typed, documented, bounded errors | PASS: `OffsetError` (a `ValueError`), `TypeError` for wrong types without class hooks; supplied text omitted from API and CLI diagnostics; stored type names escaped and bounded; table in GUIDE |
 | 6 | Contract tests of every public name | PASS: `test_contract.py`, `test_contract_api.py` (signatures, result types, error types, message bounds) |
 | 7 | Real ground truth | PASS: see Ground truth |
 | 8 | Real e2e from the wheel | PASS: wheel and sdist built, wheel installed in a throwaway venv, used from an empty folder, `tzoffset` and `python -m tzoffset` driven by subprocess; PyPI 0.2.0 upgraded in place on 2026-11-01 |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS: `test_fuzz.py`, `test_oracle.py` |
-| 10 | Supported Pythons | PASS: CPython 3.14.6 is the only working interpreter on this laptop; prior 3.10 to 3.14 and free-threaded results retained below; see Interpreters |
+| 10 | Supported Pythons | Current fix contracts pass on local CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6; complete current suite on 3.14.6. Historical full matrices retained below; see Interpreters. |
 | 11 | README and `twine check` | PASS: `twine check --strict` on both files; absolute links checked by a test |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-11-01 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS: 1.0.0, `Development Status :: 5 - Production/Stable`, Python 3.10 to 3.14, MIT, Homepage, Source, Issues, Documentation, Changelog, no runtime dependencies |
@@ -43,8 +44,8 @@ Progress:
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 16 | Independent reviewer | pending (orchestrator) |
 | 17 | PR and trace guard | PR #3, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | PASS: author round 28 of 28 killed; 13 further mutations killed after round 2 fixes; no runtime code changed since those runs |
-| 19 | Five independent QA lenses | rounds 1 and 2 fixed (see QA lenses); final PASS verdicts remain pending |
+| 18 | Contracts bite (mutations) | Prior rounds retained below; the three new survivors M28, M34 and M35 are killed by added contracts on both 0b3d648 and the fixed source. See the 2026-11-01 QA round. |
+| 19 | Five independent QA lenses | Historical rounds and the 2026-11-01 fix round recorded below; final PASS verdicts remain pending |
 
 ## API review (item 1)
 
@@ -59,9 +60,9 @@ without breaking calls. Fixed before freezing it:
 - A `tzinfo` whose `utcoffset(None)` returned a non-`timedelta` crashed with
   `AttributeError`; it is now `TypeError`.
 - Messages quoted the whole input (a 1 MB argument gave a 1 MB message) and called the
-  `repr` of the caller's object; they are now bounded and use only the characters.
+  `repr` of the caller's object; they now omit supplied text and bound stored type names.
 - `OffsetError` showed and pickled as `tzoffset._errors.OffsetError`.
-- The command line exited 0 when its reader closed early, read `--zone -foo` as an option,
+- The command line exited 0 when its reader closed early, read `--zone -05` as an option,
   and printed a traceback for an `--at` beyond year 9999 in the zone.
 
 ## Ground truth (item 7)
@@ -141,13 +142,19 @@ in 58a5244 for Python 3.10.
 
 ## Interpreters (item 10)
 
-On 2026-11-01, `py -0p` and PATH were checked and each listed executable was probed.
+For the current QA fixes, 282 focused contracts, CLI checks, documentation tests and
+doctests passed on each of CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6.
+The first four interpreters were already available in the lens a scratch directory;
+the runs were local and sequential. The complete current suite on 3.14.6 passed all
+520 cases, including both opt-in e2e tests. No current free-threaded build was tested.
+
+During preparation of 0b3d648, `py -0p` and PATH were checked and each listed executable was probed.
 Only `C:/Python314/python.exe` exists and runs: CPython 3.14.6, 64-bit, GIL enabled.
 Its full suite, both wheel e2e tests and live PyPI upgrade pass: **445 passed, no skips**.
 The other launcher entries (3.10, 3.11, 3.12, 3.13 and free-threaded 3.14) point at
 removed installations, so those versions could not be rerun on this laptop. No remote
-machine was used for the current checks. The earlier matrix remains evidence for the
-unchanged runtime source, not a claim that those interpreters are installed here today.
+machine was used for those checks. The earlier matrix remains historical evidence for
+that source revision; it does not cover the current QA fixes.
 
 Historical interpreter inventory: CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.13.11
 free-threaded, 3.14.2 and 3.14.2 free-threaded (3.9 and below are outside
@@ -172,7 +179,10 @@ Fixed in 58a5244 (exit status 1, quiet) with a test that does not depend on the 
 
 ## Packaging (item 14)
 
-Rebuilt on 2026-11-01 with CPython 3.14.6 and hatchling 1.33.0: `python -m build`
+The current QA fix suite rebuilt wheel and sdist, checked their contents, installed the
+wheel in a fresh venv, exercised both ambiguous-time folds and upgraded PyPI 0.2.0.
+
+Preparation of 0b3d648 on 2026-11-01 with CPython 3.14.6 and hatchling 1.33.0: `python -m build`
 created the sdist and built the wheel from that sdist; `twine check --strict` passed for
 both. Archive members and metadata were inspected again: LICENSE and `py.typed` present,
 no runtime dependencies, no downloaded RFCs or tzdata archive, caches or process reports.
@@ -204,13 +214,15 @@ and asserts the same contents.
 
 ## Gates (item 15)
 
-On 2026-11-01, CPython 3.14.6, ruff 0.17.3, mypy 2.4.1, pytest 9.2.0 and
-pytest-timeout 2.4.0: `ruff format --check .` (40 files), `ruff check .`,
-`mypy --strict src` (9 files) and `mypy --strict src tests` (32 files) each exit 0.
+On 2026-11-01, CPython 3.14.6, ruff 0.17.0, mypy 2.4.0, pytest 9.2.0 and
+pytest-timeout 2.4.0: `ruff format --check .` (44 files), `ruff check .`,
+`mypy --strict src` (9 files) and `mypy --strict src tests` (36 files) each exit 0.
 The full suite in a scratch copy of the working tree, with sources fetched anew,
-`TZOFFSET_E2E=1` and `TZOFFSET_E2E_PYPI=1`: **445 passed, no skips**, 35.36 seconds.
+`TZOFFSET_E2E=1` and `TZOFFSET_E2E_PYPI=1`: **520 passed, no skips**, 43.88 seconds.
 Every test has a 300-second timeout; build environments, downloads and test temporaries
 were under the dedicated scratch directory.
+The repository-local gate also exits 0: **505 passed, 15 skipped** (13 fetched-source
+cases and the two opt-in e2e tests, all included in the complete scratch run).
 
 Historical gates on 58a5244, ruff 0.17.3 and mypy 2.4.0 in a CPython 3.13.2 venv:
 `ruff format --check .` exit 0 (35 files), `ruff check .` exit 0, `mypy --strict src` exit 0
@@ -229,10 +241,10 @@ literal options, and compare 6,884 offsets in all nine style/zero combinations p
 6,008 text inputs under all three grammars (seed 20261101). They also compare the installed
 console command's output and run `python -m tzoffset --version` after the upgrade.
 
-The interrupted documentation changes and upgrade test were retained and completed.
-The 28-mutation author round and the 13-mutation check after round 2 remain applicable:
-the runtime source is unchanged from 287b0be. Earlier QA findings and fixes remain below;
-no final PASS verdict from any lens or independent reviewer was recorded, so none is
+The upgrade test passes again after the current QA fixes. The 28-mutation author round
+and the 13-mutation check after historical round 2 are retained as earlier evidence;
+this fix round rechecked the three new reported survivors on the changed runtime source.
+No final PASS verdict from any lens or independent reviewer was recorded, so none is
 claimed here. Their final checks, merge and publication remain separate stages.
 
 ## PR
@@ -241,6 +253,61 @@ PR #3 (https://github.com/JaviLianes8/tzoffset/pull/3) from `release/1.0.0` to `
 the trace guard reports CLEAN on it. Merge and publish are left to the maintainer.
 
 ## QA lenses (item 19)
+
+### 2026-11-01 review of 0b3d648: fix round 1
+
+Lenses a, c and e reported 10 findings against
+`0b3d6483f0f0ca12e51bb584443756fcfb3c75ee`. All are addressed; none is disputed.
+Final lens re-verification remains a separate stage. Earlier rounds below are historical
+and retain their original messages and test names, which this round supersedes.
+
+| Lens | Finding | Change | Evidence |
+| --- | --- | --- | --- |
+| a, c | A01, C-02: wrong types run class hooks or impersonate tzinfo | Real-type validation for every string argument and formatter input; reject fake tzinfo before calling it | `test_contract_validation.py`: all seven argument positions and an impersonating timezone |
+| a | A02: timezone callback sees overridden datetime fields | Copy stored date, time, timezone and fold into an exact datetime before the single callback | `test_contract_datetime.py`: custom timezone observes all stored fields and both folds |
+| a | A03: Literal aliases lack claimed docstrings | Correct CHANGELOG, GUIDE and item 3; explicitly adopt the alias documentation exception below | Existing alias doctests, GUIDE example, alias metadata tests and shared-object nonmutation test |
+| a | A04: dash-prefixed value support overstated | Document dash followed by an ASCII digit before `--`; other dash-prefixed option values require `--zone=VALUE` or `--at=VALUE` | Existing dash-led offset/option tests and CLI validation probes |
+| c | C-01: diagnostics echo credentials | Omit text arguments from library errors; replace argparse syntax errors with a fixed help hint; omit zone names and timestamps | `test_contract_messages.py`: six API positions with short/long canaries, 12 CLI subprocess paths including unknown, ambiguous and attached options |
+| c | C-03: hostile type names escape message limits | Read the built-in stored type-name descriptor, normalize to str, escape controls/non-ASCII and bound the rendered fragment | `test_contract_validation.py`: throwing metaclass, formatting override, huge/control/Unicode names and timezone diagnostics |
+| e | E-R1-001: M28 discards fold | Contracts for both folds of Madrid's repeated hour, using datetime/ZoneInfo as oracle; installed-wheel cases too | M28 killed on the original and fixed code |
+| e | E-R1-002: M34 accepts padded options | Reject leading/trailing ASCII and Unicode whitespace on every grammar, style and zero value | M34 killed on the original and fixed code |
+| e | E-R1-003: M35 calls overridden str conversion | Pin parsing, unknown-offset detection and all options to stored string contents; assert no conversion call | M35 killed on the original and fixed code |
+
+Decision for item 3: this release uses a scoped documentation exception for `Grammar`,
+`Style` and `Zero`. They remain the same public `typing.Literal` aliases as 0.2.0, with
+unchanged alternatives and no library-owned `__doc__`. Their runnable documentation is
+the GUIDE example and the three named `_types.__test__` entries. Public functions and
+`OffsetError` must still have runnable docstrings. Assigning docs to cached typing objects
+would modify aliases owned by other packages; replacing these aliases would change the
+stable API. This exception is explicit rather than a claim that the literal per-object
+docstring criterion passed. The CHANGELOG now describes the actual documentation.
+
+The 72 new regression cases were run before changing runtime code: **52 failed, 20
+passed** on the original source, including failures for every reported behaviour bug.
+The final baseline rerun corrected two test-harness cases (an unconstructible surrogate
+type name and a Python 3.14 help spelling). The three contract-strength findings concern
+correct original code: their tests passed until the reported mutations were applied.
+
+| Mutation | New contract that fails | Original source with mutation | Fixed source with mutation |
+| --- | --- | --- | --- |
+| M28: force fold 0 | `test_both_folds_of_an_ambiguous_aware_datetime_keep_their_offset` | fold 1 fails | fold 1 fails, including datetime subclasses |
+| M34: strip option whitespace | `test_padded_option_values_are_rejected` | 14 cases fail | 14 cases fail |
+| M35: use str(value) | string conversion contracts in `test_contract_options.py` | 2 cases fail | 2 cases fail |
+
+Every mutation ran separately in scratch with a fresh interpreter. The original M28
+substitution was applied exactly; on the fixed code it was adapted to force fold 0 on
+the normalized datetime. No mutation was left in the release tree. Tests that pinned
+input echoes were updated to the new confidentiality contract. Closed-pipe tests now
+use ordinary scratch files as output sinks, including subprocesses.
+
+Validation: all four required gates exit 0, as does `mypy --strict src tests`. Full suite
+with freshly fetched reference sources and both e2e flags: **520 passed, 0 skipped**.
+Focused matrix: **282 passed** on each of CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18
+and 3.14.6. Every pytest invocation used a 300-second timeout and scratch basetemp.
+Scratch evidence: `fix-r1/baseline-corrected.log`, `M28.log`, `M34.log`, `M35.log`, their
+`-fixed.log` counterparts, `full.log` and `matrix-*.log`.
+
+Fix commit: this commit, `fix qa findings in validation diagnostics and contracts`.
 
 ### Round 1
 
@@ -374,4 +441,4 @@ Commits of the round: 287b0be (fixes, docs and contracts), then this report.
 
 ### Disputed findings
 
-None in round 1. None in round 2.
+None in historical rounds 1 and 2. None in the 2026-11-01 review of 0b3d648, fix round 1.

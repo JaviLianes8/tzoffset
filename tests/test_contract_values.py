@@ -144,13 +144,11 @@ def test_offset_messages_show_the_exact_value(value: object, message: str) -> No
     assert str(caught.value) == message
 
 
-def test_a_text_of_forty_characters_is_quoted_whole() -> None:
+@pytest.mark.parametrize("size", [1, 40, 41, 1_000_000])
+def test_text_is_omitted_from_messages_regardless_of_length(size: int) -> None:
     with pytest.raises(OffsetError) as caught:
-        parse_offset("x" * 40)
-    assert str(caught.value) == f"not a valid lenient UTC offset: {'x' * 40!r}"
-    with pytest.raises(OffsetError) as caught:
-        parse_offset("x" * 41)
-    assert str(caught.value) == f"not a valid lenient UTC offset: {'x' * 40!r}... (41 characters)"
+        parse_offset("x" * size)
+    assert str(caught.value) == "not a valid lenient UTC offset"
 
 
 def test_type_errors_name_the_parameter() -> None:

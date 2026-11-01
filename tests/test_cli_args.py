@@ -47,17 +47,15 @@ def test_every_value_after_a_double_dash_is_an_offset(
 def test_an_option_name_after_a_double_dash_is_a_bad_offset(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert _error_line(capsys, "+01", "--", "-s") == "not a valid lenient UTC offset: '-s'"
+    assert _error_line(capsys, "+01", "--", "-s") == "not a valid lenient UTC offset"
 
 
 @pytest.mark.parametrize("size", [300, 5_000, 100_000])
-def test_a_long_usage_message_is_cut_to_two_hundred_characters(
+def test_a_long_argument_is_omitted_from_usage_errors(
     capsys: pytest.CaptureFixture[str], size: int
 ) -> None:
     message = _error_line(capsys, "-s", "x" * size, "+01")
-    assert len(message) == 200
-    assert message.endswith("x" * 20 + "...")
-    assert "argument -s/--style" in message
+    assert message == "invalid command line arguments; see --help"
 
 
 @pytest.mark.parametrize(("size", "cut"), [(199, False), (200, False), (201, True)])
@@ -72,20 +70,20 @@ def test_the_cut_starts_past_two_hundred_characters(
 
 
 @pytest.mark.parametrize(
-    ("argv", "shown"),
+    "argv",
     [
-        (["-s", "-05:00", "+01"], "argument -s/--style: invalid choice: '-05:00'"),
-        (["-z", "-05", "+01"], "argument -z/--zero: invalid choice: '-05'"),
-        (["-g", "-1", "+01"], "argument -g/--grammar: invalid choice: '-1'"),
-        (["--style=-05:00", "+01"], "argument -s/--style: invalid choice: '-05:00'"),
+        ["-s", "-05:00", "+01"],
+        ["-z", "-05", "+01"],
+        ["-g", "-1", "+01"],
+        ["--style=-05:00", "+01"],
     ],
 )
-def test_a_rejected_option_value_is_quoted_as_typed(
-    capsys: pytest.CaptureFixture[str], argv: list[str], shown: str
+def test_a_rejected_option_value_is_omitted(
+    capsys: pytest.CaptureFixture[str], argv: list[str]
 ) -> None:
     # The private mark that keeps "-05:00" a value must never reach the user.
     message = _error_line(capsys, *argv)
-    assert message.startswith(shown), message
+    assert message == "invalid command line arguments; see --help"
     assert "\x00" not in message and "\\x00" not in message
 
 

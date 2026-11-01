@@ -6,7 +6,6 @@ import argparse
 import re
 from datetime import datetime, timezone
 
-from ._checks import quote
 from ._parse import parse_offset
 
 # A date and time with a trailing offset: the time part holds only digits, colons and a
@@ -53,14 +52,14 @@ def zone_moment(parser: argparse.ArgumentParser, name: str, at: str | None) -> d
         # OSError: a folder of the database such as "America" is not a zone.
         if not available_timezones():
             parser.error("no time zone database found; install the tzdata package")
-        parser.error(f"unknown time zone: {quote(name)}")
+        parser.error("unknown time zone")
     if at is None:
         return datetime.now(timezone.utc).astimezone(zone)
     try:
         when = moment(at)
     except ValueError:
         parser.error(
-            f"cannot read --at as a date and time: {quote(at)} "
+            "cannot read --at as a date and time "
             "(expected a form such as 2026-07-01T12:00:00+02:00)"
         )
     if when.tzinfo is None:
@@ -69,4 +68,4 @@ def zone_moment(parser: argparse.ArgumentParser, name: str, at: str | None) -> d
         return when.astimezone(zone)
     except OverflowError:
         # The same instant falls before year 1 or after year 9999 on the zone's clock.
-        parser.error(f"--at is out of range in {quote(name)}: {quote(at)}")
+        parser.error("--at is out of range in the selected time zone")

@@ -68,7 +68,8 @@ def test_bad_offset_exits_two_and_prints_nothing(capsys: pytest.CaptureFixture[s
     assert stop.value.code == 2
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert "+25:00" in captured.err
+    assert "offset field out of range" in captured.err
+    assert "+25:00" not in captured.err
 
 
 def test_offsets_or_zone_are_required(capsys: pytest.CaptureFixture[str]) -> None:

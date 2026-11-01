@@ -66,9 +66,9 @@ class _Hostile(str):
 
 def test_str_subclasses_are_read_by_their_characters() -> None:
     assert parse_offset(_Hostile(" +05:30 ")) == timezone(timedelta(hours=5, minutes=30))
-    with pytest.raises(OffsetError, match="'bogus'"):
+    with pytest.raises(OffsetError, match="not a valid lenient UTC offset"):
         parse_offset(_Hostile("bogus"))
-    with pytest.raises(OffsetError, match="unknown grammar: 'x'"):
+    with pytest.raises(OffsetError, match="unknown grammar"):
         parse_offset("+01", grammar=_Hostile("x"))  # type: ignore[arg-type]
     assert format_offset(timedelta(0), style=_Hostile("short"), zero=_Hostile("-")) == "-00"  # type: ignore[arg-type]
 
@@ -180,9 +180,7 @@ def test_messages_never_echo_huge_input(call: Callable[[], object]) -> None:
     assert len(str(caught.value)) < 200, str(caught.value)[:300]
 
 
-def test_a_long_text_is_quoted_by_its_first_forty_characters() -> None:
+def test_a_long_text_is_omitted_from_the_message() -> None:
     with pytest.raises(OffsetError) as caught:
         parse_offset("+05:30" + "x" * 100)
-    assert str(caught.value) == (
-        "not a valid lenient UTC offset: '+05:30" + "x" * 34 + "'... (106 characters)"
-    )
+    assert str(caught.value) == "not a valid lenient UTC offset"

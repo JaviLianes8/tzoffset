@@ -15,14 +15,18 @@ defaults and accepted values of 0.2.0.
 
 ### Added
 
-- `GUIDE.md` with every rule in detail; every public name has a docstring with a runnable
-  example, and the README and GUIDE examples run as tests.
+- `GUIDE.md` with every rule in detail; public functions and `OffsetError` have runnable
+  docstrings. The shared `Literal` aliases `Grammar`, `Style` and `Zero` have runnable
+  examples in the GUIDE and named alias doctests, without assigning their `__doc__`.
+  The README and GUIDE examples run as tests.
 - Tests against independent references: the texts of RFC 3339, RFC 5322 and RFC 9557, the
   zone offsets of the tz database 2026e, recorded `java.time.ZoneOffset` output,
   `rfc3339-validator`, `python-dateutil` and the standard library (`strptime`, `strftime`,
   `isoformat`, `fromisoformat`, `email.utils`, `zoneinfo`), plus seeded fuzz tests.
 - An installed-wheel upgrade test from PyPI 0.2.0, comparing the stable API and command
   line before and after the upgrade in the same environment.
+- Contracts for both folds of an ambiguous aware datetime, whitespace-padded options,
+  and string subclasses overriding `__str__`.
 
 ### Changed
 
@@ -35,25 +39,33 @@ defaults and accepted values of 0.2.0.
 - `format_offset` of an aware `datetime` whose `tzinfo` returns an offset of a day or more
   raises `OffsetError`, as the `tzinfo` itself does, instead of the plain `ValueError` of
   the standard library.
-- Error messages quote at most 40 characters of a text argument, followed by its length,
-  show an offset as its exact `timedelta`, and never call the `repr` of the caller's object;
-  a field out of range names the allowed ranges. The `TypeError` for a `text` that is not a
-  `str` names the parameter: `text must be a str, not int` (it said `offset`).
+- Error messages omit supplied text arguments, including CLI values and unknown option
+  names, to avoid echoing credentials. CLI syntax errors say `invalid command line
+  arguments; see --help`. An offset is shown as its exact `timedelta`; a field out of
+  range names the allowed ranges. The `TypeError` for a `text` that is not a `str` names
+  the parameter: `text must be a str, not int` (it said `offset`). Stored type names bypass
+  metaclass hooks and are escaped before being cut to 40 rendered characters plus `...`.
 - A subclass of `str` is read by its characters only; its own methods are not called. A
   subclass of `timedelta` or `datetime` is read by its stored value: an overridden `days`,
   `seconds`, `utcoffset`, `__add__`, `__radd__` or `__repr__` no longer changes the result
-  or the message. An object that only claims to be a `timedelta` or `datetime` through its
-  `__class__`, such as `unittest.mock.Mock(spec=timedelta)`, raises `TypeError` (also when
-  a `tzinfo` returns it). The `tzinfo` of a `datetime` is asked for its offset once: the
-  message for a naive `datetime` is built from its stored fields.
+  or the message. An object that only claims to be a `str`, `timedelta`, `tzinfo` or
+  `datetime` through its `__class__`, such as `unittest.mock.Mock(spec=timedelta)`, raises
+  `TypeError` (also when a `tzinfo` returns it). The `tzinfo` of a `datetime` is asked
+  for its offset once: the message for a naive `datetime` is built from its stored fields.
+  All argument checks
+  use real types without evaluating an argument's `__class__` property. The timezone
+  callback receives an exact `datetime` with the stored fields, timezone and `fold`,
+  preventing subclass properties from changing the offset. The original object's
+  identity and subclass-specific attributes are not passed to the callback.
 - `OffsetError` shows and pickles as `tzoffset.OffsetError`.
 - Command line: a reader that closes the output early (`| head`) gives exit status 1
   instead of 0, also for `--help` and `--version`; `--zone` and `--at` values that start
-  with `-` are read as values; an `--at` that falls outside years 1 to 9999 in the zone
-  exits with status 2 and a message instead of a traceback; usage messages are cut to
-  200 characters. Values after `--` are offsets on every Python (3.10 and 3.11 refused
-  `tzoffset -- -05:30`). A rejected `-s`, `-z` or `-g` value that starts with `-` is
-  quoted as typed.
+  with a dash followed by an ASCII digit are read as values; other dash-prefixed option
+  values require the equals form (`--zone=-bad`, `--at=-bad`). An `--at` that falls outside
+  years 1 to 9999 in the zone exits with status 2 and a message instead of a traceback;
+  usage messages are cut to 200 characters. Values after `--` are offsets on every Python
+  (3.10 and 3.11 refused
+  `tzoffset -- -05:30`). Rejected option values are omitted from diagnostics.
 - Command line `--at`: a fraction of a second of any length, a comma as the decimal mark
   and a leap second (second 60, read as 59) are read on every Python, so every RFC 3339
   timestamp works on 3.10 too; text it cannot read gives `cannot read --at as a date and

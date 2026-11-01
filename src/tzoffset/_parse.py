@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from datetime import timedelta, timezone
 
-from ._checks import choice, plain, quote
+from ._checks import choice, plain
 from ._errors import OffsetError
 from ._types import GRAMMARS, Grammar
 
@@ -36,20 +36,18 @@ def _read(text: object, grammar: object) -> tuple[int, bool]:
         return 0, True
     match = _PATTERNS[rule].fullmatch(body)
     if match is None:
-        raise OffsetError(f"not a valid {rule} UTC offset: {quote(original)}")
+        raise OffsetError(f"not a valid {rule} UTC offset")
     fields = match.groupdict()
     hours = int(fields["hh"])
     minutes = int(fields.get("mc") or fields.get("mp") or 0)
     seconds = int(fields.get("sc") or fields.get("sp") or 0)
     # Hours stop at 23 so the magnitude stays under the one day Python allows.
     if hours > 23 or minutes > 59 or seconds > 59:
-        raise OffsetError(
-            f"offset field out of range: {quote(original)} (hours 00-23, minutes and seconds 00-59)"
-        )
+        raise OffsetError("offset field out of range (hours 00-23, minutes and seconds 00-59)")
     total = hours * 3600 + minutes * 60 + seconds
     if fields["sign"] == "-":
         if total == 0 and rule == "iso8601":
-            raise OffsetError(f"ISO 8601 does not allow a negative zero offset: {quote(original)}")
+            raise OffsetError("ISO 8601 does not allow a negative zero offset")
         return -total, total == 0
     return total, False
 
@@ -76,7 +74,7 @@ def parse_offset(text: str, *, grammar: Grammar = "lenient") -> timezone:
     >>> parse_offset("+0530", grammar="rfc3339")
     Traceback (most recent call last):
         ...
-    tzoffset.OffsetError: not a valid rfc3339 UTC offset: '+0530'
+    tzoffset.OffsetError: not a valid rfc3339 UTC offset
     """
     seconds, _ = _read(text, grammar)
     return timezone(timedelta(seconds=seconds))

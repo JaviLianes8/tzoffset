@@ -105,7 +105,8 @@ def test_unreadable_text_is_not_called_invalid_iso_8601(
 ) -> None:
     _need_zones()
     err = _err(capsys, "--zone", "UTC", "--at", "noon")
-    assert "cannot read --at as a date and time: 'noon'" in err
+    assert "cannot read --at as a date and time" in err
+    assert "noon" not in err
     assert "ISO 8601" not in err
 
 

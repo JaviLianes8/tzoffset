@@ -76,7 +76,7 @@ def test_unknown_name_with_a_database_is_blamed_on_the_name(
 
     monkeypatch.setattr(zoneinfo, "ZoneInfo", missing)
     monkeypatch.setattr(zoneinfo, "available_timezones", lambda: {"UTC"})
-    assert "unknown time zone: 'Mars/Olympus'" in _fails(capsys, "--zone", "Mars/Olympus")
+    assert "unknown time zone" in _fails(capsys, "--zone", "Mars/Olympus")
 
 
 def test_a_folder_of_the_database_is_not_a_zone(
@@ -87,7 +87,7 @@ def test_a_folder_of_the_database_is_not_a_zone(
 
     monkeypatch.setattr(zoneinfo, "ZoneInfo", folder)
     monkeypatch.setattr(zoneinfo, "available_timezones", lambda: {"America/New_York"})
-    assert "unknown time zone: 'America'" in _fails(capsys, "--zone", "America")
+    assert "unknown time zone" in _fails(capsys, "--zone", "America")
 
 
 def test_a_real_folder_name_exits_two(capsys: pytest.CaptureFixture[str]) -> None:
@@ -133,13 +133,15 @@ def test_the_ends_of_the_calendar_still_work_as_wall_time(
 
 def test_dash_led_zone_and_at_values_arrive_intact(capsys: pytest.CaptureFixture[str]) -> None:
     _need_zones()
-    assert "unknown time zone: '-05'" in _fails(capsys, "--zone", "-05")
-    assert "'-2026-01-01'" in _fails(capsys, "--zone", "UTC", "--at", "-2026-01-01")
+    assert "unknown time zone" in _fails(capsys, "--zone", "-05")
+    assert "cannot read --at" in _fails(capsys, "--zone", "UTC", "--at", "-2026-01-01")
 
 
-def test_huge_zone_and_at_values_are_cut_in_messages(capsys: pytest.CaptureFixture[str]) -> None:
+def test_huge_zone_and_at_values_are_omitted_from_messages(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     _need_zones()
     for argv in (["--zone", "Z" * 100_000], ["--zone", "UTC", "--at", "2" * 100_000]):
         err = _fails(capsys, *argv)
-        assert "(100000 characters)" in err
+        assert "Z" * 40 not in err and "2" * 40 not in err
         assert len(err) < 1000

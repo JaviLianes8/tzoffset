@@ -13,6 +13,7 @@ _SECONDS_PER_DAY = 24 * 3600
 _T = TypeVar("_T")
 # The C-level tzinfo field of a datetime, which a subclass cannot override.
 _DATETIME_TZINFO = vars(datetime)["tzinfo"]
+_DATETIME_FOLD = vars(datetime)["fold"]
 # The C-level date and time fields of a datetime, for a message that asks nobody else.
 _FIELDS = tuple(vars(date)[name] for name in ("year", "month", "day")) + tuple(
     vars(datetime)[name] for name in ("hour", "minute", "second", "microsecond")
@@ -38,7 +39,8 @@ def format_offset(
     (also the one of a ``datetime``) whose ``utcoffset`` returns something other than a
     ``timedelta`` or ``None``, or a ``style`` or ``zero`` that is not a ``str``. A subclass
     of ``timedelta`` or ``datetime`` is read by its stored value, never by its own methods;
-    an object that only claims to be one (a mock with ``spec=timedelta``) is a ``TypeError``.
+    the timezone receives an exact ``datetime`` with the stored fields, timezone and fold.
+    An object that only claims to be a supported type is a ``TypeError``.
 
     >>> from datetime import timedelta, timezone
     >>> from tzoffset import format_offset
@@ -86,11 +88,25 @@ def _as_timedelta(value: object) -> timedelta:
         # The tzinfo is read from the datetime itself and range-checked here, so a subclass
         # cannot change the offset and an offset of a day or more is an OffsetError.
         zone = _DATETIME_TZINFO.__get__(value, datetime)
-        offset = None if zone is None else _offset(zone, value)
+        year, month, day, hour, minute, second, microsecond = (
+            field.__get__(value) for field in _FIELDS
+        )
+        moment = datetime(
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            microsecond,
+            tzinfo=zone,
+            fold=_DATETIME_FOLD.__get__(value),
+        )
+        offset = None if zone is None else _offset(zone, moment)
         if offset is None:
             raise OffsetError(f"a naive datetime has no UTC offset: {_naive_text(value)}")
         return offset
-    if isinstance(value, tzinfo):
+    if _is(value, tzinfo):  # type: ignore[type-abstract]
         fixed = _offset(value, None)
         if fixed is None:
             raise OffsetError(

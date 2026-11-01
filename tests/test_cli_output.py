@@ -17,6 +17,13 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 ENV = {**os.environ, "PYTHONPATH": str(SRC), "PYTHONDONTWRITEBYTECODE": "1"}
 
 
+@pytest.fixture(autouse=True)
+def _ordinary_output_sink(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    sink = tmp_path / "output-sink.txt"
+    sink.touch()
+    monkeypatch.setattr(os, "devnull", str(sink))
+
+
 def test_module_runs_and_reports_its_version() -> None:
     result = subprocess.run(
         [sys.executable, "-m", "tzoffset", "--version"],
@@ -34,7 +41,14 @@ def test_module_runs_and_reports_its_version() -> None:
 @pytest.mark.parametrize("argv", [["+01", "-08"], ["--help"], ["--version"]])
 def test_a_reader_that_leaves_first_gets_status_one_and_no_noise(argv: list[str]) -> None:
     process = subprocess.Popen(
-        [sys.executable, "-m", "tzoffset", *argv],
+        [
+            sys.executable,
+            "-c",
+            "import os, runpy, sys; os.devnull = sys.argv.pop(1); "
+            "runpy.run_module('tzoffset', run_name='__main__')",
+            os.devnull,
+            *argv,
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=ENV,

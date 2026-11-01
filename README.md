@@ -58,9 +58,9 @@ for text in ["+0530", "+05:30:45", " +05:30"]:
         parse_offset(text, grammar="rfc3339")
     except OffsetError as error:
         print(error)
-# not a valid rfc3339 UTC offset: '+0530'
-# not a valid rfc3339 UTC offset: '+05:30:45'
-# not a valid rfc3339 UTC offset: ' +05:30'
+# not a valid rfc3339 UTC offset
+# not a valid rfc3339 UTC offset
+# not a valid rfc3339 UTC offset
 ```
 
 ### Unknown local offset
@@ -137,7 +137,7 @@ early (`| head`) gives status 1. Also available as `python -m tzoffset`.
 | `is_unknown_local_offset(text, *, grammar="lenient")` | `True` for `Z` and a negative zero (`-00:00`, `-0000`, `-00`), after validating the text. |
 | `format_offset(value, *, style="colon", zero="+")` | Text for a `timedelta`, a fixed-offset `tzinfo` or an aware `datetime`. |
 | `Grammar`, `Style`, `Zero` | `Literal` aliases of the accepted `grammar`, `style` and `zero` values. |
-| `OffsetError` | `ValueError` subclass for text that is not an offset and values out of range. Arguments of the wrong type raise `TypeError`. Messages quote at most 40 characters of a text argument. |
+| `OffsetError` | `ValueError` subclass for text that is not an offset and values out of range. Arguments of the wrong type raise `TypeError`. Messages omit supplied text arguments. |
 
 The [GUIDE](https://github.com/JaviLianes8/tzoffset/blob/main/GUIDE.md) has every rule in
 detail, and the [CHANGELOG](https://github.com/JaviLianes8/tzoffset/blob/main/CHANGELOG.md)

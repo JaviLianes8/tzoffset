@@ -17,12 +17,23 @@ from ._parse import parse_offset
 from ._types import GRAMMARS, STYLES, ZEROS
 
 _MARK = "\x00"
-# argparse quotes a rejected argument whole; a longer message is cut to this many characters.
+# Library diagnostics are bounded; argparse diagnostics never expose argument text.
 _MESSAGE_LIMIT = 200
 
 
 class _Parser(argparse.ArgumentParser):
+    _parsing = False
+
+    def read(self, argv: Sequence[str]) -> argparse.Namespace:
+        self._parsing = True
+        try:
+            return self.parse_intermixed_args(argv)
+        finally:
+            self._parsing = False
+
     def error(self, message: str) -> NoReturn:
+        if self._parsing:
+            message = "invalid command line arguments; see --help"
         if len(message) > _MESSAGE_LIMIT:
             message = message[: _MESSAGE_LIMIT - 3] + "..."
         super().error(message)
@@ -43,7 +54,7 @@ def _unshield(text: str) -> str:
     return text[len(_MARK) :] if text.startswith(_MARK) else text
 
 
-def _parser() -> argparse.ArgumentParser:
+def _parser() -> _Parser:
     from . import __version__
 
     parser = _Parser(
@@ -58,7 +69,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "offsets", nargs="*", type=_unshield, metavar="OFFSET", help="offsets to rewrite"
     )
-    # Every option that takes a value removes the mark, so a rejected value is shown as typed.
+    # Every option that takes a value removes the internal offset mark before validation.
     parser.add_argument(
         "-s",
         "--style",
@@ -95,8 +106,8 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _lines(parser: argparse.ArgumentParser, argv: Sequence[str]) -> list[str]:
-    args = parser.parse_intermixed_args(_shield_offsets(argv))
+def _lines(parser: _Parser, argv: Sequence[str]) -> list[str]:
+    args = parser.read(_shield_offsets(argv))
     if args.zone is None and args.at is not None:
         parser.error("--at needs --zone")
     if (args.zone is None) == (not args.offsets):

@@ -40,9 +40,9 @@ for text, grammar in [("+05", "rfc3339"), ("-00:00", "iso8601"), ("+5", "lenient
         parse_offset(text, grammar=grammar)
     except OffsetError as error:
         print(error)
-# not a valid rfc3339 UTC offset: '+05'
-# ISO 8601 does not allow a negative zero offset: '-00:00'
-# not a valid lenient UTC offset: '+5'
+# not a valid rfc3339 UTC offset
+# ISO 8601 does not allow a negative zero offset
+# not a valid lenient UTC offset
 ```
 
 ## The unknown local offset: `is_unknown_local_offset`
@@ -98,14 +98,18 @@ A subclass of `timedelta` or `datetime` is read by its stored value: an overridd
 only claims to be one, such as `unittest.mock.Mock(spec=timedelta)`, is not read at all: it
 is a `TypeError`. The offset of an aware `datetime` comes from its `tzinfo`, which is asked
 once, and is checked like any other, so an offset of a day or more is an `OffsetError`
-whichever way it arrives.
+whichever way it arrives. Before that callback the value is copied into an exact
+`datetime`, preserving its stored date, time, timezone and `fold`. The timezone sees
+those fields rather than any subclass properties; it does not receive the original
+object or subclass-specific attributes. Both folds of a repeated hour keep their offset.
 
 ## Types for type checkers: `Grammar`, `Style` and `Zero`
 
 `Grammar`, `Style` and `Zero` are `typing.Literal` aliases of the accepted `grammar`, `style`
 and `zero` values, for annotating code that passes them on. `typing.get_args` lists the
 values. They are the shared `Literal` objects of the standard library, so they carry no
-docstring of their own; this guide is their documentation.
+docstring of their own; this guide and the named alias doctests are their documentation.
+The examples run with the regular test suite without modifying shared typing objects.
 
 ```python
 import typing
@@ -129,20 +133,29 @@ print(typing.get_args(Style), typing.get_args(Zero))
 | `text`, `grammar`, `style` or `zero` that is not a `str` | `TypeError` |
 | a `value` that is not a `timedelta`, `tzinfo` or `datetime`; a `tzinfo`, also the one of a `datetime`, whose `utcoffset` returns something other than a `timedelta` or `None` | `TypeError` |
 
-`OffsetError` is a `ValueError`, so existing `except ValueError` handlers keep working. A
-message quotes at most 40 characters of a text argument, followed by its length when it is
-longer; an offset is shown as its exact `timedelta` (`datetime.timedelta(days=2)`), a naive
-`datetime` by its stored date and time in ISO 8601 form and any other object by its type
-name, cut to 40 characters. So a huge or hostile argument never becomes a huge message. A
-subclass of `str` is read by its characters only: its own `strip`, `__eq__` or `__repr__`
-are never called.
+`OffsetError` is a `ValueError`, so existing `except ValueError` handlers keep working.
+Library diagnostics omit supplied text arguments, including CLI option values and unknown
+option names, so they do not echo credentials accidentally passed as offsets. CLI syntax
+errors say `invalid command line arguments; see --help`. An offset is shown as its exact
+`timedelta` (`datetime.timedelta(days=2)`), a naive `datetime` by its stored date and time
+in ISO 8601 form and any other object by its stored type name. Type names bypass metaclass
+hooks, escape controls and non-ASCII characters, and are cut to 40 rendered characters
+plus `...` when truncated. A subclass of `str` is read by its characters only: its own
+`__str__`, `strip`, `__eq__` or `__repr__` are never called. Type checks never consult an
+argument's `__class__` property. Exceptions raised by a real timezone's callback still
+propagate unchanged; their messages belong to that callback.
+
+Option values are exact: surrounding whitespace in `grammar`, `style` or `zero` is an
+`OffsetError`, including when supplied as a string subclass.
 
 ## Command line
 
 `tzoffset OFFSET...` rewrites each offset on its own line; `tzoffset --zone NAME [--at
 MOMENT]` prints the offset of a tz database zone. Options may come before or after the
 offsets, and an offset that starts with `-` is never read as an option, before or after a
-`--`.
+`--`. Before `--`, a dash followed by an ASCII digit is treated as a value, including
+after `--zone` or `--at`. For other dash-prefixed option values use the equals form,
+such as `--zone=-bad` or `--at=-bad`; those reach zone or timestamp validation.
 
 | option | meaning |
 | --- | --- |
