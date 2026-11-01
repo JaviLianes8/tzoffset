@@ -294,11 +294,14 @@ builds and temporary files remain there. Focused matrix: **305 passed** on each 
 CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6. Every pytest invocation uses a
 300-second timeout and scratch basetemp. An initial matrix setup omitted the timezone
 database from CLI subprocesses; the rerun supplies its explicit path.
+The worktree's pytest gate also exits 0: **530 passed, 13 skipped** because the fetched
+reference sources are kept only in scratch; all 13 run in the complete suite above.
 
 Scratch evidence: `fix-r2/before.log`, `focused.log`, `N03.log`, `N23.log`, `fetch.log`,
 `full.log` and `matrix-*.log` under the certification scratch directory.
 
-Fix commit: `add runnable alias docs and close diagnostic contract gaps` (this commit).
+Fix commit: `2d6445e911c8a43e5711cf87f7ffaff95912f714`,
+`add runnable alias docs and close diagnostic contract gaps`.
 
 ### 2026-11-01 review of 0b3d648: fix round 1
 
