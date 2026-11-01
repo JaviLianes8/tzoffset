@@ -1,15 +1,8 @@
-"""Literal aliases for the options of the public functions.
-
-``Grammar`` names the spellings ``parse_offset`` accepts, ``Style`` how ``format_offset``
-writes hours, minutes and seconds, and ``Zero`` how it writes a zero offset. typing caches
-``Literal[...]`` objects and shares them with every other alias of the same values, so the
-aliases carry no ``__doc__`` of their own: their documentation lives here, in the GUIDE and
-in the examples of ``__test__`` below.
-"""
+"""Documented Literal aliases for the options of the public functions."""
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, get_args
 
 #: Which spellings ``parse_offset`` accepts: ``"lenient"`` (the default), ``"rfc3339"``
 #: (RFC 3339 section 5.6) or ``"iso8601"`` (RFC 3339 Appendix A, RFC 9557 section 2).
@@ -64,3 +57,13 @@ datetime.timezone(datetime.timedelta(seconds=19800))
 ['+00:00', '-00:00', 'Z']
 """,
 }
+
+# Literal subscriptions are cached. copy_with creates independent aliases, so their
+# documentation never changes typing objects already held by another package.
+if not TYPE_CHECKING:
+    Grammar = Grammar.copy_with(get_args(Grammar))
+    Grammar.__doc__ = __test__["Grammar"]
+    Style = Style.copy_with(get_args(Style))
+    Style.__doc__ = __test__["Style"]
+    Zero = Zero.copy_with(get_args(Zero))
+    Zero.__doc__ = __test__["Zero"]

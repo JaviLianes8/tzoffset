@@ -107,9 +107,10 @@ object or subclass-specific attributes. Both folds of a repeated hour keep their
 
 `Grammar`, `Style` and `Zero` are `typing.Literal` aliases of the accepted `grammar`, `style`
 and `zero` values, for annotating code that passes them on. `typing.get_args` lists the
-values. They are the shared `Literal` objects of the standard library, so they carry no
-docstring of their own; this guide and the named alias doctests are their documentation.
-The examples run with the regular test suite without modifying shared typing objects.
+values. Each alias has its own docstring with runnable examples. The aliases are separate
+objects from the standard library's cached `Literal` subscriptions, with the same values,
+equality, hashing and typing metadata. Importing the package leaves shared typing objects
+unchanged. The docstring examples run with the regular test suite.
 
 ```python
 import typing

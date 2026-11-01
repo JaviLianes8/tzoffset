@@ -18,7 +18,8 @@ Progress:
 - [x] 2026-11-01: live PyPI upgrade, local interpreter inventory and refreshed source checks
 - [x] QA lenses round 1: 23 findings fixed (7989756, 5162d8a); see QA lenses
 - [x] QA lenses round 2: 7 findings fixed (287b0be); see QA lenses
-- [x] 2026-11-01 QA fix round 1 on 0b3d648: all 10 findings addressed; see QA lenses
+- [x] 2026-11-01 QA fix round 1 on 0b3d648: 10 findings reviewed; A03 completed in fix round 2
+- [x] 2026-11-01 QA fix round 2 on a69965c: A03, E-R2-001 and E-R2-002 fixed; see QA lenses
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 - [x] PR #3 and trace guard CLEAN (item 17); merge and publish left to the maintainer
@@ -29,7 +30,7 @@ Progress:
 | --- | --- | --- |
 | 1 | Public API reviewed for stability | PASS: 7 names; names, signatures, defaults and accepted values kept from 0.2.0 and pinned by `test_contract_api.py`; error type changes listed in CHANGELOG |
 | 2 | `__all__` exact, no private imports in docs | PASS: `test_contract.py` checks `__all__` and `dir()`; README and GUIDE import only from `tzoffset` |
-| 3 | Docstrings with runnable examples, doctests | Documented exception for shared Literal aliases: runnable GUIDE and named doctest examples replace per-object docstrings. Functions and `OffsetError` have runnable docstrings; all 8 doctest items and README/GUIDE examples pass. See A03 below. |
+| 3 | Docstrings with runnable examples, doctests | PASS: all seven public names have runnable per-object docstrings, including independent Literal aliases. Direct docstring execution, all 8 doctest items and README/GUIDE examples pass. Shared typing objects remain unchanged. |
 | 4 | Typed end to end | PASS: `mypy --strict src tests`, `py.typed` shipped, `Literal` aliases, a consumer snippet type-checked in `test_typing.py`; no `Any` in the public API |
 | 5 | Typed, documented, bounded errors | PASS: `OffsetError` (a `ValueError`), `TypeError` for wrong types without class hooks; supplied text omitted from API and CLI diagnostics; stored type names escaped and bounded; table in GUIDE |
 | 6 | Contract tests of every public name | PASS: `test_contract.py`, `test_contract_api.py` (signatures, result types, error types, message bounds) |
@@ -44,7 +45,7 @@ Progress:
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 16 | Independent reviewer | pending (orchestrator) |
 | 17 | PR and trace guard | PR #3, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | Prior rounds retained below; the three new survivors M28, M34 and M35 are killed by added contracts on both 0b3d648 and the fixed source. See the 2026-11-01 QA round. |
+| 18 | Contracts bite (mutations) | Prior rounds retained below; M28, M34 and M35 are killed by the first fix round's contracts. Round 2 survivors N03 and N23 are killed by the new diagnostic contracts. See the 2026-11-01 QA rounds. |
 | 19 | Five independent QA lenses | Historical rounds and the 2026-11-01 fix round recorded below; final PASS verdicts remain pending |
 
 ## API review (item 1)
@@ -254,10 +255,56 @@ the trace guard reports CLEAN on it. Merge and publish are left to the maintaine
 
 ## QA lenses (item 19)
 
+### 2026-11-01 review of a69965c: fix round 2
+
+Lenses a and e reported three findings against
+`a69965cf049df12e867be47948b24df43b033a6a`. All three are fixed; none is disputed.
+Final lens re-verification remains a separate stage.
+
+| Lens | Finding | Change | Evidence |
+| --- | --- | --- | --- |
+| a | A03: Grammar, Style and Zero lack runnable docstrings | Copy each Literal alias before attaching its runnable documentation; correct GUIDE, CHANGELOG and item 3; withdraw the earlier exception | `test_contract_aliases.py`: execute every public docstring and check shared-object nonmutation, Literal metadata, equality, hashing, representation, pickling and resolved annotations in a fresh process |
+| e | E-R2-001: N03 leaves printable non-ASCII type names unescaped | Add accented Latin and CJK names across all seven argument positions; require ASCII-only output and the exact escaped suffix | `test_printable_non_ascii_type_names_are_escaped`: 14 cases; N03 fails all 14 |
+| e | E-R2-002: N23 echoes CLI arguments on calendar overflow | Add subprocess contracts at years 1 and 9999, with a distinctive fractional-second canary; require omitted zone and timestamp, status 2 and empty stdout | `test_cli_calendar_overflow_diagnostics_omit_both_arguments`: N23 fails both cases |
+
+The new docstring contracts ran first on the original implementation: **4 failed, 71
+passed** across the three focused files. The failures were the three missing alias
+docstrings and the independent-object contract. Both diagnostic findings concern correct
+runtime behavior with missing regression coverage: their new contracts already pass on
+the original implementation. The exact reported patches were then applied separately in
+scratch, and each produced assertion failures in its new contracts. Neither diagnostic
+implementation needed changing.
+
+The aliases retain their accepted values, Literal origin, equality, hash, representation,
+resolved annotations and pickle equality. Their identity is now separate from cached
+standard-library aliases so they can own documentation without changing another package's
+objects. This documentation-related change is recorded in the CHANGELOG. The runtime
+alias copying and docstrings are exercised on every supported local interpreter.
+
+| Mutation | Contract that fails | Result |
+| --- | --- | --- |
+| N03: replace ascii(type name) with repr(type name) | `test_contract_validation.py::test_printable_non_ascii_type_names_are_escaped` | 14 assertion failures |
+| N23: interpolate zone and timestamp in overflow error | `test_contract_messages.py::test_cli_calendar_overflow_diagnostics_omit_both_arguments` | 2 assertion failures |
+
+Validation: `ruff format --check .`, `ruff check .`, `mypy --strict src` and
+`mypy --strict src tests` all exit 0. Full suite with freshly fetched reference sources
+and both e2e flags: **543 passed, 0 skipped**, including wheel installation and the
+PyPI 0.2.0 upgrade. The full run uses a source snapshot in scratch so downloaded sources,
+builds and temporary files remain there. Focused matrix: **305 passed** on each of
+CPython 3.10.22, 3.11.18, 3.12.16, 3.13.18 and 3.14.6. Every pytest invocation uses a
+300-second timeout and scratch basetemp. An initial matrix setup omitted the timezone
+database from CLI subprocesses; the rerun supplies its explicit path.
+
+Scratch evidence: `fix-r2/before.log`, `focused.log`, `N03.log`, `N23.log`, `fetch.log`,
+`full.log` and `matrix-*.log` under the certification scratch directory.
+
+Fix commit: `add runnable alias docs and close diagnostic contract gaps` (this commit).
+
 ### 2026-11-01 review of 0b3d648: fix round 1
 
 Lenses a, c and e reported 10 findings against
-`0b3d6483f0f0ca12e51bb584443756fcfb3c75ee`. All are addressed; none is disputed.
+`0b3d6483f0f0ca12e51bb584443756fcfb3c75ee`. Changes for all ten were recorded; A03
+remained open on re-check and is completed in fix round 2 above. None is disputed.
 Final lens re-verification remains a separate stage. Earlier rounds below are historical
 and retain their original messages and test names, which this round supersedes.
 
@@ -265,7 +312,7 @@ and retain their original messages and test names, which this round supersedes.
 | --- | --- | --- | --- |
 | a, c | A01, C-02: wrong types run class hooks or impersonate tzinfo | Real-type validation for every string argument and formatter input; reject fake tzinfo before calling it | `test_contract_validation.py`: all seven argument positions and an impersonating timezone |
 | a | A02: timezone callback sees overridden datetime fields | Copy stored date, time, timezone and fold into an exact datetime before the single callback | `test_contract_datetime.py`: custom timezone observes all stored fields and both folds |
-| a | A03: Literal aliases lack claimed docstrings | Correct CHANGELOG, GUIDE and item 3; explicitly adopt the alias documentation exception below | Existing alias doctests, GUIDE example, alias metadata tests and shared-object nonmutation test |
+| a | A03: Literal aliases lack claimed docstrings | Initially corrected CHANGELOG and GUIDE and proposed an exception; superseded by fix round 2 | Existing alias doctests, GUIDE example, alias metadata tests and shared-object nonmutation test |
 | a | A04: dash-prefixed value support overstated | Document dash followed by an ASCII digit before `--`; other dash-prefixed option values require `--zone=VALUE` or `--at=VALUE` | Existing dash-led offset/option tests and CLI validation probes |
 | c | C-01: diagnostics echo credentials | Omit text arguments from library errors; replace argparse syntax errors with a fixed help hint; omit zone names and timestamps | `test_contract_messages.py`: six API positions with short/long canaries, 12 CLI subprocess paths including unknown, ambiguous and attached options |
 | c | C-03: hostile type names escape message limits | Read the built-in stored type-name descriptor, normalize to str, escape controls/non-ASCII and bound the rendered fragment | `test_contract_validation.py`: throwing metaclass, formatting override, huge/control/Unicode names and timezone diagnostics |
@@ -273,14 +320,10 @@ and retain their original messages and test names, which this round supersedes.
 | e | E-R1-002: M34 accepts padded options | Reject leading/trailing ASCII and Unicode whitespace on every grammar, style and zero value | M34 killed on the original and fixed code |
 | e | E-R1-003: M35 calls overridden str conversion | Pin parsing, unknown-offset detection and all options to stored string contents; assert no conversion call | M35 killed on the original and fixed code |
 
-Decision for item 3: this release uses a scoped documentation exception for `Grammar`,
-`Style` and `Zero`. They remain the same public `typing.Literal` aliases as 0.2.0, with
-unchanged alternatives and no library-owned `__doc__`. Their runnable documentation is
-the GUIDE example and the three named `_types.__test__` entries. Public functions and
-`OffsetError` must still have runnable docstrings. Assigning docs to cached typing objects
-would modify aliases owned by other packages; replacing these aliases would change the
-stable API. This exception is explicit rather than a claim that the literal per-object
-docstring criterion passed. The CHANGELOG now describes the actual documentation.
+The exception proposed here for item 3 did not satisfy the governing requirement and is
+withdrawn. Fix round 2 above gives `Grammar`, `Style` and `Zero` runnable docstrings on
+independent Literal objects, preserving their typing semantics and leaving shared objects
+untouched. All seven public names now meet the per-object docstring requirement.
 
 The 72 new regression cases were run before changing runtime code: **52 failed, 20
 passed** on the original source, including failures for every reported behaviour bug.
@@ -443,3 +486,4 @@ Commits of the round: 287b0be (fixes, docs and contracts), then this report.
 ### Disputed findings
 
 None in historical rounds 1 and 2. None in the 2026-11-01 review of 0b3d648, fix round 1.
+None in the 2026-11-01 review of a69965c, fix round 2.

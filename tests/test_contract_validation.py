@@ -96,6 +96,22 @@ def test_rendered_type_names_are_escaped_and_bounded(name: str) -> None:
     assert message.isascii() and all(ord(char) >= 32 for char in message)
 
 
+@pytest.mark.parametrize("call", CALLS)
+@pytest.mark.parametrize(
+    ("name", "escaped"),
+    [("Priv\u00e9", r"Priv\xe9"), ("Type\u754c", r"Type\u754c")],
+    ids=["accent", "cjk"],
+)
+def test_printable_non_ascii_type_names_are_escaped(
+    call: Callable[[object], object], name: str, escaped: str
+) -> None:
+    with pytest.raises(TypeError) as caught:
+        call(type(name, (), {})())
+    message = str(caught.value)
+    assert message.isascii()
+    assert message.endswith("not " + escaped)
+
+
 @pytest.mark.parametrize("answer", [None, object()])
 def test_timezone_error_names_do_not_run_metaclass_hooks(answer: object) -> None:
     class Zone(tzinfo, metaclass=_Throwing):

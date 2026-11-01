@@ -15,10 +15,9 @@ defaults and accepted values of 0.2.0.
 
 ### Added
 
-- `GUIDE.md` with every rule in detail; public functions and `OffsetError` have runnable
-  docstrings. The shared `Literal` aliases `Grammar`, `Style` and `Zero` have runnable
-  examples in the GUIDE and named alias doctests, without assigning their `__doc__`.
-  The README and GUIDE examples run as tests.
+- `GUIDE.md` with every rule in detail; every public name has a runnable docstring,
+  including the `Literal` aliases `Grammar`, `Style` and `Zero`. The README and GUIDE
+  examples run as tests.
 - Tests against independent references: the texts of RFC 3339, RFC 5322 and RFC 9557, the
   zone offsets of the tz database 2026e, recorded `java.time.ZoneOffset` output,
   `rfc3339-validator`, `python-dateutil` and the standard library (`strptime`, `strftime`,
@@ -27,9 +26,15 @@ defaults and accepted values of 0.2.0.
   line before and after the upgrade in the same environment.
 - Contracts for both folds of an ambiguous aware datetime, whitespace-padded options,
   and string subclasses overriding `__str__`.
+- Diagnostic contracts for printable non-ASCII type names and omission of zone and
+  timestamp arguments on calendar overflow at both ends of the supported year range.
 
 ### Changed
 
+- `Grammar`, `Style` and `Zero` now have their own docstrings on independent `Literal`
+  objects. They retain their values, equality, hashing and typing metadata, but no longer
+  share object identity with cached standard-library aliases. Importing the package does
+  not modify shared typing objects.
 - A `grammar`, `style` or `zero` that is not a `str` raises `TypeError` instead of
   `OffsetError`; an unknown string still raises `OffsetError`, which now names the accepted
   values.

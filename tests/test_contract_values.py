@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import typing
 from datetime import datetime, timedelta, timezone, tzinfo
 
 import pytest
@@ -12,20 +11,11 @@ from tzoffset import OffsetError, format_offset, is_unknown_local_offset, parse_
 from tzoffset._types import __test__ as alias_examples
 
 
-def test_importing_leaves_the_shared_literal_objects_alone() -> None:
-    # typing caches Literal[...] objects: a caller's alias of the same values is the very
-    # same object, so the package must not give it a docstring of its own.
-    mine = typing.Literal["+", "-", "Z"]
-    assert mine is tzoffset.Zero
-    fresh = typing.Literal["a value no other module uses"].__doc__
-    for alias in (tzoffset.Grammar, tzoffset.Style, tzoffset.Zero):
-        assert alias.__doc__ == fresh
-
-
 def test_every_alias_has_a_documented_example() -> None:
     assert sorted(alias_examples) == ["Grammar", "Style", "Zero"]
     for name, text in alias_examples.items():
         assert ">>> " in text and f"from tzoffset import {name}" in text, name
+        assert getattr(tzoffset, name).__doc__ == text
 
 
 class _Fixed(tzinfo):

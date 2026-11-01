@@ -76,3 +76,31 @@ def test_cli_diagnostics_do_not_echo_arguments(argv: list[str]) -> None:
     assert CANARY not in result.stderr and "secret=" not in result.stderr
     assert "Traceback" not in result.stderr
     assert len(result.stderr) < 1000
+
+
+@pytest.mark.parametrize(
+    ("zone", "at"),
+    [
+        ("Etc/GMT+12", "0001-01-01T00:00:00.8642091357Z"),
+        ("Etc/GMT-14", "9999-12-31T23:59:59.8642091357Z"),
+    ],
+)
+def test_cli_calendar_overflow_diagnostics_omit_both_arguments(zone: str, at: str) -> None:
+    source = Path(__file__).resolve().parents[1] / "src"
+    result = subprocess.run(
+        [sys.executable, "-m", "tzoffset", "--zone", zone, "--at", at],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+        env={**os.environ, "PYTHONPATH": str(source)},
+    )
+    assert result.returncode == 2
+    assert result.stdout == ""
+    assert zone not in result.stderr and at not in result.stderr
+    assert "8642091357" not in result.stderr
+    assert result.stderr.splitlines()[-1] == (
+        "tzoffset: error: --at is out of range in the selected time zone"
+    )
+    assert "Traceback" not in result.stderr
+    assert len(result.stderr) < 1000
